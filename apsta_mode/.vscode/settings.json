@@ -1,0 +1,16 @@
+{
+    "cmake.configureOnOpen": false,
+    "C_Cpp.intelliSenseEngine": "Disabled",
+    "C_Cpp.intelliSenseEngineFallback": "Disabled",
+    "clangd.path": "clangd",
+    "clangd.arguments": [
+        "--background-index",
+        "--compile-commands-dir=build",
+        "--completion-style=detailed",
+        "--header-insertion=never"
+    ],
+    "files.associations": {
+        "*.conf": "kconfig",
+        "Kconfig*": "kconfig"
+    }
+}
