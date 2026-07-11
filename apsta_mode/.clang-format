@@ -1,0 +1,78 @@
+# SPDX-License-Identifier: Apache-2.0
+#
+# Zephyr project coding style (similar to Linux kernel)
+# See: https://docs.zephyrproject.org/latest/contribute/coding_style.html
+#
+# Usage: clang-format -i <file>
+
+BasedOnStyle: LLVM
+
+# Use braces for all control blocks (Linux kernel style even for single lines)
+AllowShortBlocksOnASingleLine: false
+AllowShortFunctionsOnASingleLine: false
+AllowShortIfStatementsOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
+
+# Indentation
+IndentWidth: 8
+UseTab: Always
+ContinuationIndentWidth: 8
+AlignAfterOpenBracket: Align
+AlignConsecutiveAssignments: false
+AlignConsecutiveDeclarations: false
+AlignOperands: true
+AlignTrailingComments: false
+
+# Braces and spacing
+BreakBeforeBraces: Linux
+AllowAllParametersOfDeclarationOnNextLine: false
+BinPackArguments: false
+BinPackParameters: false
+BreakBeforeBinaryOperators: None
+ColumnLimit: 100
+AlwaysBreakAfterReturnType: None
+
+# Spaces
+SpaceAfterCStyleCast: false
+SpaceAfterTemplateKeyword: false
+SpaceBeforeAssignmentOperators: true
+SpaceBeforeParens: ControlStatements
+SpaceInEmptyParentheses: false
+SpacesInAngles: false
+SpacesInCStyleCastParentheses: false
+SpacesInContainerLiterals: false
+SpacesInParentheses: false
+SpacesInSquareBrackets: false
+
+# Pointers and references
+PointerAlignment: Right
+ReferenceAlignment: Right
+DerivePointerAlignment: false
+
+# Functions and methods
+AlwaysBreakAfterDefinitionReturnType: None
+BreakConstructorInitializers: BeforeComma
+ConstructorInitializerAllOnOneLineOrOnePerLine: false
+
+# Includes
+SortIncludes: true
+IncludeBlocks: Regroup
+IncludeCategories:
+  - Regex: '^<zephyr/'
+    Priority: 1
+    SortPriority: 0
+  - Regex: '^"'
+    Priority: 2
+    SortPriority: 0
+  - Regex: '^<'
+    Priority: 3
+    SortPriority: 0
+
+# Comments
+ReflowComments: true
+CommentPragmas: '^ IWYU pragma:'
+FixNamespaceComments: true
+
+# Macros
+AlignConsecutiveMacros: false
+ForEachMacros: [for_each, list_for_each, SYS_INIT]
