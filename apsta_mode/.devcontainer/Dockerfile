@@ -85,12 +85,22 @@ RUN ARCH="$(uname -m)" \
     && cd "${ZEPHYR_SDK_INSTALL_DIR}" \
     && ./setup.sh -t xtensa-espressif_esp32s3_zephyr-elf \
     && rm -rf "${ZEPHYR_SDK_INSTALL_DIR}"/sysroots/*/usr/share/doc \
-    && rm -rf "${ZEPHYR_SDK_INSTALL_DIR}"/*.tar.*
+    && rm -rf "${ZEPHYR_SDK_INSTALL_DIR}"/*.tar.* \
+    && for dir in "${ZEPHYR_SDK_INSTALL_DIR}"/*/; do \
+        tc="$(basename "$dir")"; \
+        [ "$tc" = "xtensa-espressif_esp32s3_zephyr-elf" ] && continue; \
+        [ "$tc" = "cmake" ] && continue; \
+        [ "$tc" = "hosttools" ] && continue; \
+        [ "$tc" = "sysroots" ] && continue; \
+        echo "Removing unused toolchain: $tc"; \
+        rm -rf "$dir"; \
+    done
 
 # ------------------------------------------------------------------
 # 4. Environment setup
 # ------------------------------------------------------------------
 ENV ZEPHYR_TOOLCHAIN_VARIANT=zephyr
+ENV ZEPHYR_BASE=/workspaces/horcrux/zephyr
 
 # ------------------------------------------------------------------
 # 5. Non-root user
@@ -111,8 +121,14 @@ RUN groupadd --gid "${USER_GID}" "${USERNAME}" 2>/dev/null || true; \
     echo "${USERNAME} ALL=(root) NOPASSWD:ALL" > /etc/sudoers.d/"${USERNAME}" && \
     chmod 0440 /etc/sudoers.d/"${USERNAME}"
 
-# Ensure Zephyr SDK is owned by the user
-RUN chown -R "${USERNAME}:" "${ZEPHYR_SDK_INSTALL_DIR}"
+# Entrypoint — adjusts UID/GID at runtime for volume-mounted workspaces.
+# Must run as root so it can call usermod/groupmod/chown, then
+# it drops privileges to USERNAME via sudo -E before exec.
+# Path is relative to build context (workspace root), set in devcontainer.json
+COPY .devcontainer/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
 
-USER ${USERNAME}
+# Switch back to root for entrypoint; the script will drop privileges
+USER root
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 WORKDIR /workspaces/horcrux/apsta_mode

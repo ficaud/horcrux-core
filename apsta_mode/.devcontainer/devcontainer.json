@@ -39,7 +39,7 @@
     "ZEPHYR_SDK_INSTALL_DIR": "/opt/zephyr-sdk",
     "ZEPHYR_BASE": "/workspaces/horcrux/zephyr"
   },
-  "postCreateCommand": "cd /workspaces/horcrux && west init -l apsta_mode && west update",
+  "postCreateCommand": "sudo chown -R \"$(whoami):$(id -g)\" /workspaces/horcrux /opt/zephyr-sdk 2>/dev/null; cd /workspaces/horcrux && if [ -d .west ]; then west update; else env -u ZEPHYR_BASE west init -l apsta_mode && env -u ZEPHYR_BASE west update; fi && bash apsta_mode/tools/download-blobs.sh",
   "remoteUser": "vscode",
   "runArgs": [
     "--privileged"
