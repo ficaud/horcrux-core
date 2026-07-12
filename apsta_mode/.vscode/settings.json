@@ -1,7 +1,11 @@
 {
     "cmake.configureOnOpen": false,
-    "C_Cpp.intelliSenseEngine": "Disabled",
-    "C_Cpp.intelliSenseEngineFallback": "Disabled",
+    "C_Cpp.intelliSenseEngine": "Default",
+    "C_Cpp.default.compileCommands": "${workspaceFolder}/build/compile_commands.json",
+    "C_Cpp.default.includePath": [
+        "${workspaceFolder}/**",
+        "${workspaceFolder}/src/**"
+    ],
     "clangd.path": "clangd",
     "clangd.arguments": [
         "--background-index",
