@@ -3,41 +3,54 @@
 
 #include <stddef.h>
 
-/* Taille max des buffers de parsing */
-#define ROUTER_METHOD_MAX   8
-#define ROUTER_PATH_MAX     64
+// ===========================================================================
+// Definitions
+// ===========================================================================
+#define ROUTER_METHOD_MAX (8)
+#define ROUTER_PATH_MAX   (64)
 
+// ===========================================================================
+// Typedef and structure definition
+// ===========================================================================
 /**
- * @brief Requête HTTP parsée.
+ * @brief Parsed HTTP request.
  *
- * Les pointeurs body / query pointent dans le buffer brut
- * (pas d'allocation dynamique).
+ * The body / query pointers reference the raw buffer
+ * (no dynamic allocation).
  */
-struct http_request {
-	char method[ROUTER_METHOD_MAX];
-	char path[ROUTER_PATH_MAX];
-	const char *body;       /* pointe dans raw (NULL si pas de body) */
-	size_t      body_len;
-};
+struct http_request;
 
+/** Handler function signature */
+typedef const char *(*handler_fn)(const struct http_request *);
+
+struct http_request
+{
+    char method[ROUTER_METHOD_MAX];
+    char path[ROUTER_PATH_MAX];
+    const char *body; /* pointe dans raw (NULL si pas de body) */
+    size_t body_len;
+};
+// ===========================================================================
+// Public function declaration
+// ===========================================================================
 /**
- * @brief Parse une requête HTTP brute.
+ * @brief Parse a raw HTTP request.
  *
- * Extrait la méthode, le chemin, et repère le début du body.
- * Le buffer @p raw est modifié sur place (ajout de \0).
+ * Extracts the method, path, and locates the body start.
+ * The @p raw buffer is modified in place (null-terminators inserted).
  *
- * @param req    Structure à remplir.
- * @param raw    Buffer contenant la requête HTTP.
- * @param raw_len Nombre d'octets lus.
- * @return 0 si OK, -1 si parsing impossible.
+ * @param req[out]     Structure to fill with parsed data.
+ * @param raw[in,out]  Buffer containing the raw HTTP request (modified).
+ * @param raw_len[in]  Number of bytes received.
+ * @return 0 on success, -1 if parsing failed.
  */
 int router_parse(struct http_request *req, char *raw, size_t raw_len);
 
 /**
- * @brief Dispatch la requête vers le bon handler.
+ * @brief Dispatch the request to the appropriate handler.
  *
- * @param req Requête parsée par router_parse().
- * @return Chaîne HTTP complète prête à être envoyée (statique, ne pas libérer).
+ * @param req[in] Request parsed by router_parse().
+ * @return Complete HTTP response string (static, do not free).
  */
 const char *router_dispatch(const struct http_request *req);
 

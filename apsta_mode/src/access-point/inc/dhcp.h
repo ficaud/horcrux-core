@@ -4,11 +4,11 @@
 #include <zephyr/net/net_if.h>
 
 /**
- * @brief Configure l'adresse IP et démarre le serveur DHCPv4 sur
- *        l'interface AP.
+ * @brief Configure the IP address and start the DHCPv4 server on the
+ *        AP interface.
  *
- * @param iface Interface Wi-Fi AP (obtenue via net_if_get_wifi_sap()).
- * @return 0 si OK, négatif en cas d'erreur.
+ * @param iface Wi-Fi AP interface (obtained via net_if_get_wifi_sap()).
+ * @return 0 on success, negative error code on failure.
  */
 int dhcp_server_start(struct net_if *iface);
 

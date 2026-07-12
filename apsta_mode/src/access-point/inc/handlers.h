@@ -4,14 +4,14 @@
 #include "router.h"
 
 /**
- * @brief Handler racine — page d'accueil du portail captif.
+ * @brief Root handler — captive portal home page.
  */
 const char *handler_root(const struct http_request *req);
 
 /**
- * @brief Handler portail captif — utilisé pour toutes les sondes
- *        (Android, Apple, Windows) et toute route inconnue.
- *        Renvoie la page HTML qui déclenche la popup.
+ * @brief Captive portal handler — used for all probes
+ *        (Android, Apple, Windows) and any unknown route.
+ *        Returns the HTML page that triggers the popup.
  */
 const char *handler_captive_portal(const struct http_request *req);
 

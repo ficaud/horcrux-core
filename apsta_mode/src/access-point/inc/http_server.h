@@ -2,16 +2,16 @@
 #define ACCESS_POINT_HTTP_SERVER_H
 
 /**
- * @brief Démarre le serveur HTTP du portail captif (thread séparé, port TCP 80).
+ * @brief Start the captive portal HTTP server (dedicated thread, TCP port 80).
  *
- * @return 0 si OK, code d'erreur négatif sinon.
+ * @return 0 on success, negative error code on failure.
  */
 int http_server_start(void);
 
 /**
- * @brief Arrête le serveur HTTP et libère les ressources.
+ * @brief Stop the HTTP server and release resources.
  *
- * @return 0 si OK, code d'erreur négatif sinon.
+ * @return 0 on success, negative error code on failure.
  */
 int http_server_stop(void);
 
