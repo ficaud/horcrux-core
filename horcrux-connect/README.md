@@ -2,7 +2,16 @@
 
 ## WARNING This is a work in progress. The hardware and software are not yet ready for production use.
 
-## Quick Start
+## Quick Start - programming
+
+### Via ESPWEBTOOL
+
+
+### Via ESPTOOL
+
+
+
+## Quick Start - contribution
 
 ### Build and Flash
 

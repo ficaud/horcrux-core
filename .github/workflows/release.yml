@@ -1,0 +1,95 @@
+# SPDX-License-Identifier: Apache-2.0
+#
+# Release workflow — Build le firmware et crée une GitHub Release
+# avec les artefacts de compilation (zephyr.bin, zephyr.elf, etc.).
+
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag (ex: v1.0.0)'
+        required: false
+        type: string
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Free disk space
+        run: |
+          sudo apt-get clean
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/share/powershell /usr/lib/mono /usr/local/julia* /opt/hostedtoolcache
+          df -h /
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build devcontainer image
+        uses: docker/build-push-action@v6
+        with:
+          context: horcrux-connect
+          file: horcrux-connect/.devcontainer/Dockerfile
+          load: true
+          tags: zephyr-dev:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Setup West workspace
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}:/workspaces/horcrux \
+            -w /workspaces/horcrux \
+            zephyr-dev:latest \
+            bash -c "west init -l horcrux-connect && west update"
+
+      - name: Build firmware
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}:/workspaces/horcrux \
+            -w /workspaces/horcrux/horcrux-connect \
+            zephyr-dev:latest \
+            west build -b esp32s3_devkitc/esp32s3/procpu -d build .
+
+      - name: Prepare release artifact
+        run: |
+          mkdir -p release-artifacts
+          cp horcrux-connect/build/zephyr/zephyr.bin release-artifacts/
+
+      - name: Determine version
+        id: version
+        run: |
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            echo "tag=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: Release ${{ steps.version.outputs.tag }}
+          body: |
+            ## Horcrux-Connect Firmware ${{ steps.version.outputs.tag }}
+
+            Firmware pour **ESP32-S3-DevKitC-1 (procpu)** — Point d'accès Wi-Fi avec portail captif.
+
+            ### Flash
+            ```bash
+            esptool.py write_flash 0x0 zephyr.bin
+            ```
+          files: release-artifacts/*
+          draft: true
+          generate_release_notes: false
