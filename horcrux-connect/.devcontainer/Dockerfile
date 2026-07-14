@@ -75,8 +75,8 @@ RUN pip3 install --no-cache-dir --break-system-packages \
 # We use a two-step approach:
 #   1. The full _gnu bundle for the small cmake scaffolding (< 20 MB)
 #      (cmake/ comes first in the tar, so extraction is fast)
-#   2. The individual ESP32-S3 toolchain tarball (~200 MB) extracted
-#      on top, ensuring the toolchain is always complete.
+#   2. The individual ESP32 and ESP32-S3 toolchain tarballs extracted
+#      on top, ensuring the toolchains are always complete.
 ENV ZEPHYR_SDK_VERSION=1.0.1
 ENV ZEPHYR_SDK_INSTALL_DIR=/opt/zephyr-sdk
 
@@ -86,9 +86,11 @@ RUN ARCH="$(uname -m)" \
         aarch64|arm64) SDK_ARCH="aarch64" ;; \
         *) echo "Unsupported architecture: ${ARCH}" && exit 1 ;; \
     esac \
-    && TOOLCHAIN="xtensa-espressif_esp32s3_zephyr-elf" \
+    && TOOLCHAIN_ESP32S3="xtensa-espressif_esp32s3_zephyr-elf" \
+    && TOOLCHAIN_ESP32="xtensa-espressif_esp32_zephyr-elf" \
     && FULL_SDK_URL="https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v${ZEPHYR_SDK_VERSION}/zephyr-sdk-${ZEPHYR_SDK_VERSION}_linux-${SDK_ARCH}_gnu.tar.xz" \
-    && TOOLCHAIN_URL="https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v${ZEPHYR_SDK_VERSION}/toolchain_gnu_linux-${SDK_ARCH}_${TOOLCHAIN}.tar.xz" \
+    && TOOLCHAIN_ESP32S3_URL="https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v${ZEPHYR_SDK_VERSION}/toolchain_gnu_linux-${SDK_ARCH}_${TOOLCHAIN_ESP32S3}.tar.xz" \
+    && TOOLCHAIN_ESP32_URL="https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v${ZEPHYR_SDK_VERSION}/toolchain_gnu_linux-${SDK_ARCH}_${TOOLCHAIN_ESP32}.tar.xz" \
     # 3a. Full SDK bundle (cmake scaffolding, small files first in tar)
     && echo "Downloading SDK cmake scaffolding..." \
     && wget -q --show-progress --tries=5 --timeout=120 -O /tmp/sdk-full.tar.xz "${FULL_SDK_URL}" \
@@ -98,31 +100,38 @@ RUN ARCH="$(uname -m)" \
     && rm /tmp/sdk-full.tar.xz \
     # 3b. Overlay the ESP32-S3 toolchain from its individual tarball (guarantees it's complete)
     && echo "Downloading ESP32-S3 toolchain..." \
-    && wget -q --show-progress --tries=5 --timeout=120 -O /tmp/toolchain.tar.xz "${TOOLCHAIN_URL}" \
+    && wget -q --show-progress --tries=5 --timeout=120 -O /tmp/toolchain-s3.tar.xz "${TOOLCHAIN_ESP32S3_URL}" \
     && mkdir -p "${ZEPHYR_SDK_INSTALL_DIR}/gnu" \
-    && rm -rf "${ZEPHYR_SDK_INSTALL_DIR}/gnu/${TOOLCHAIN}" \
-    && tar -xf /tmp/toolchain.tar.xz -C "${ZEPHYR_SDK_INSTALL_DIR}/gnu/" \
-    && rm /tmp/toolchain.tar.xz \
-    # 3c. Strip all other toolchains (save ~2 GB)
+    && rm -rf "${ZEPHYR_SDK_INSTALL_DIR}/gnu/${TOOLCHAIN_ESP32S3}" \
+    && tar -xf /tmp/toolchain-s3.tar.xz -C "${ZEPHYR_SDK_INSTALL_DIR}/gnu/" \
+    && rm /tmp/toolchain-s3.tar.xz \
+    # 3c. Overlay the ESP32 toolchain from its individual tarball
+    && echo "Downloading ESP32 toolchain..." \
+    && wget -q --show-progress --tries=5 --timeout=120 -O /tmp/toolchain-esp32.tar.xz "${TOOLCHAIN_ESP32_URL}" \
+    && rm -rf "${ZEPHYR_SDK_INSTALL_DIR}/gnu/${TOOLCHAIN_ESP32}" \
+    && tar -xf /tmp/toolchain-esp32.tar.xz -C "${ZEPHYR_SDK_INSTALL_DIR}/gnu/" \
+    && rm /tmp/toolchain-esp32.tar.xz \
+    # 3d. Strip all other toolchains (save ~2 GB)
     && if [ -d "${ZEPHYR_SDK_INSTALL_DIR}/gnu" ]; then \
          for dir in "${ZEPHYR_SDK_INSTALL_DIR}"/gnu/*/; do \
            [ -d "$dir" ] || continue; \
            tc="$(basename "$dir")"; \
-           [ "$tc" = "${TOOLCHAIN}" ] && continue; \
+           [ "$tc" = "${TOOLCHAIN_ESP32S3}" ] || [ "$tc" = "${TOOLCHAIN_ESP32}" ] && continue; \
            echo "Removing unused toolchain: $tc"; \
            rm -rf "$dir"; \
          done; \
        fi \
-    # 3d. Update sdk_gnu_toolchains to list only the one we keep
-    && echo "${TOOLCHAIN}" > "${ZEPHYR_SDK_INSTALL_DIR}/sdk_gnu_toolchains" \
-    # 3e. Verify the toolchain is usable before proceeding
-    && TOOLCHAIN_BIN="${ZEPHYR_SDK_INSTALL_DIR}/gnu/${TOOLCHAIN}/bin/${TOOLCHAIN}-gcc" \
-    && if [ ! -x "${TOOLCHAIN_BIN}" ]; then \
-         echo "ERROR: Toolchain not found at ${TOOLCHAIN_BIN}"; \
+    # 3e. Update sdk_gnu_toolchains to list only the ones we keep
+    && printf "%s\n%s\n" "${TOOLCHAIN_ESP32S3}" "${TOOLCHAIN_ESP32}" > "${ZEPHYR_SDK_INSTALL_DIR}/sdk_gnu_toolchains" \
+    # 3f. Verify the toolchains are usable before proceeding
+    && TOOLCHAIN_ESP32S3_BIN="${ZEPHYR_SDK_INSTALL_DIR}/gnu/${TOOLCHAIN_ESP32S3}/bin/${TOOLCHAIN_ESP32S3}-gcc" \
+    && TOOLCHAIN_ESP32_BIN="${ZEPHYR_SDK_INSTALL_DIR}/gnu/${TOOLCHAIN_ESP32}/bin/${TOOLCHAIN_ESP32}-gcc" \
+    && if [ ! -x "${TOOLCHAIN_ESP32S3_BIN}" ] || [ ! -x "${TOOLCHAIN_ESP32_BIN}" ]; then \
+         echo "ERROR: Toolchain not found or not executable"; \
          ls -la "${ZEPHYR_SDK_INSTALL_DIR}/gnu/" 2>/dev/null || echo "gnu/ empty or missing"; \
          exit 1; \
        fi \
-    && echo "SDK installed successfully (${TOOLCHAIN} verified)"
+    && echo "SDK installed successfully (${TOOLCHAIN_ESP32S3} and ${TOOLCHAIN_ESP32} verified)"
 
 # ------------------------------------------------------------------
 # 4. Environment setup
