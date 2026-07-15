@@ -53,6 +53,18 @@ const char *handler_root(const struct http_request *req)
     return PAGE_CAPTIVE;
 }
 
+const char *handler_split(const struct http_request *req)
+{
+    (void)req;
+    return PAGE_SPLIT;
+}
+
+const char *handler_unsplit(const struct http_request *req)
+{
+    (void)req;
+    return PAGE_UNSPLIT;
+}
+
 const char *handler_captive_portal(const struct http_request *req)
 {
     (void)req;

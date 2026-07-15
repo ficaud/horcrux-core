@@ -32,6 +32,8 @@ static const struct
     handler_fn handler;
 } routes[] = {
     {"/", handler_root},
+    {"/split", handler_split},
+    {"/unsplit", handler_unsplit},
     {"/cipher", handler_encrypt},
 };
 

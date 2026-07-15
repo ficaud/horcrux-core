@@ -7,7 +7,7 @@
 // Public function declaration
 // ===========================================================================
 /**
- * @brief Root handler — captive portal home page.
+ * @brief Root handler — landing page with two buttons (split / unsplit).
  */
 const char *handler_root(const struct http_request *req);
 
@@ -17,6 +17,16 @@ const char *handler_root(const struct http_request *req);
  *        Returns the HTML page that triggers the popup.
  */
 const char *handler_captive_portal(const struct http_request *req);
+
+/**
+ * @brief Split handler — serves the Shamir's Secret Encryption form.
+ */
+const char *handler_split(const struct http_request *req);
+
+/**
+ * @brief Unsplit handler — serves the reconstruct-secret demo page.
+ */
+const char *handler_unsplit(const struct http_request *req);
 
 /**
  * @brief Encrypt handler — receives a message to encrypt.
