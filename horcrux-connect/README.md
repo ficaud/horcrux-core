@@ -5,7 +5,8 @@
 ## Quick Start - flash ESP32
 
 What boards ?
-* ESP32-S3-DevKitC-1
+* [ESP32-S3-DevKitC-1](https://docs.zephyrproject.org/latest/boards/espressif/esp32s3_devkitc/doc/index.html)
+* [ESP32-DevKit-V1](https://docs.zephyrproject.org/latest/boards/others/doit_esp32_devkit_v1/doc/index.html)
 
 Where is the latest firmware release ?
 * [last release](https://github.com/ficaud/horcrux_box/releases)
@@ -15,11 +16,21 @@ Where is the latest firmware release ?
 
 1. Go to [ESPWEBTOOL](https://esptool.spacehuhn.com/) and connect to your board by selecting the correct serial port.
 
-2. Reset the board in bootloader mode by pressing the BOOT button while pressing the EN/RESET button, then release the EN button and finally release the BOOT button.
+2. Reset the board in bootloader mode:
+   - Press and hold the **BOOT** button.
+   - While holding **BOOT**, press and release the **EN/RESET** button.
+   - Release the **BOOT** button.
 
-3. Remove all sectors keeping only one sector for the firmware. The sector size is 4MB, so you can keep the first sector (0x00000) and remove the rest.
+3. In the memory map, remove all sectors except the one containing the firmware:
 
-4. Select the firmware binary file and flash it by clicking on the "PROGRAM" button.
+   | Board | Keep this sector | Flash offset |
+   |---|---|---|
+   | **ESP32-S3** | `0x00000` (first sector) | `0x0` |
+   | **ESP32** | `0x01000` (second sector) | `0x1000` |
+
+   > The ESP32 ROM bootloader requires the firmware at offset `0x1000` (the first 4 KB sector is reserved). The ESP32-S3 accepts it at `0x0`.
+
+4. Select the firmware binary file and click **PROGRAM**.
 
 ### Via ESPTOOL (Python)
 
@@ -42,15 +53,20 @@ python3 -c "import esptool; print(esptool.__version__)"
 
 **2. Connect the board and identify the serial port**
 
-- **macOS**: `/dev/cu.usbmodem*` or `/dev/tty.usbmodem*`
-- **Linux**: `/dev/ttyACM0` or `/dev/ttyUSB0`
-- **Windows**: `COM1`, `COM2`, etc.
+| OS | Typical port |
+|---|---|
+| **macOS** | `/dev/cu.usbmodem*` or `/dev/cu.usbserial-*` |
+| **Linux** | `/dev/ttyACM0` or `/dev/ttyUSB0` |
+| **Windows** | `COM1`, `COM2`, etc. |
 
 List available ports:
 
 ```bash
-# macOS / Linux
-ls /dev/cu.usbmodem* /dev/ttyACM* /dev/ttyUSB* 2>/dev/null
+# macOS
+ls /dev/cu.usbmodem* /dev/cu.usbserial* 2>/dev/null
+
+# Linux
+ls /dev/ttyACM* /dev/ttyUSB* 2>/dev/null
 
 # Windows (PowerShell)
 python -m esptool chip_id
@@ -66,23 +82,34 @@ The board is now ready to receive firmware.
 
 **4. Flash the firmware**
 
-Erase the flash first (optional but recommended for a clean slate):
+Erase the flash first (recommended for a clean slate):
 
-Note, if you're on macOS, don't forget to activate your virtual environment if you have one.
+> ⚠️ Activate your Python virtual environment first if you use one (especially on macOS).
 
+| Board | Erase command |
+|---|---|
+| **ESP32-S3** | `esptool --chip esp32s3 --port <PORT> erase_flash` |
+| **ESP32** | `esptool --chip esp32 --port <PORT> erase_flash` |
+
+Then write the firmware — **the chip type, baud rate, and flash offset differ** between boards:
+
+**ESP32-S3** (flash offset `0x0`):
 ```bash
-esptool.py --chip esp32s3 --port <YOUR_PORT> erase_flash
-```
-
-Write the firmware binary to address `0x0`:
-
-```bash
-esptool.py --chip esp32s3 --port <YOUR_PORT> --baud 921600 \
+esptool --chip esp32s3 --port <PORT> --baud 921600 \
   --before default-reset --after hard-reset \
-  write_flash 0x0 path/to/firmware.bin
+  write-flash 0x0 path/to/firmware.bin
 ```
 
-Replace `<YOUR_PORT>` with the port detected in step 2, and `path/to/firmware.bin` with the path to your compiled binary (e.g., `build/zephyr/zephyr.bin`).
+**ESP32** (flash offset `0x1000`):
+```bash
+esptool --chip esp32 --port <PORT> --baud 460800 \
+  --before default-reset --after hard-reset \
+  write-flash 0x1000 path/to/firmware.bin
+```
+
+Replace `<PORT>` with the port from step 2, and `path/to/firmware.bin` with the compiled binary (e.g., `build/zephyr/zephyr.bin`).
+
+> Why `0x1000` for ESP32? The first 4 KB flash sector (`0x0000`–`0x0FFF`) is reserved by the ESP32 ROM bootloader for metadata. The ESP32-S3 ROM does not have this requirement, so the image starts at `0x0`.
 
 ## Quick Start - contribution
 
