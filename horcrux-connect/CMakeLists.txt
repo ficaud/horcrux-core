@@ -27,6 +27,8 @@ add_custom_command(
             ${ASSETS_DIR}
             ${ASSETS_OUTPUT}
     DEPENDS ${ASSETS_DIR}/index.html
+            ${ASSETS_DIR}/split.html
+            ${ASSETS_DIR}/unsplit.html
             ${ASSETS_DIR}/style.css
             ${CMAKE_CURRENT_SOURCE_DIR}/tools/embed-assets.py
     COMMENT "Generating page_captive.h from assets..."

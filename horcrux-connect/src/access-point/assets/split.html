@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Horcrux — Split</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="card">
+        <div class="icon">&#x1F512;</div>
+        <h2>Shamir's Secret Encryption</h2>
+        <p class="desc">Enter the secret you wish to encrypt using Shamir's Secret Sharing scheme. Your secret will be
+            split into shares that can be distributed securely.</p>
+        <div class="test-box">
+            <input type="text" id="msg-input" class="msg-input" placeholder="Enter your secret code..." maxlength="100">
+            <button id="msg-btn" class="msg-btn">Encrypt</button>
+        </div>
+        <a href="/" class="back-link">&#8592; Back</a>
+        <script>
+            document.getElementById('msg-btn').addEventListener('click', function () {
+                var msg = document.getElementById('msg-input').value;
+                if (msg.trim() !== '') {
+                    fetch('/cipher?msg=' + encodeURIComponent(msg));
+                }
+            });
+            document.getElementById('msg-input').addEventListener('keydown', function (e) {
+                if (e.key === 'Enter') {
+                    document.getElementById('msg-btn').click();
+                }
+            });
+        </script>
+    </div>
+</body>
+
+</html>

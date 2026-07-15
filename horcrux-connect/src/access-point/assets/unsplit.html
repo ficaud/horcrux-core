@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Horcrux — Unsplit</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="card">
+        <div class="icon">&#x1F513;</div>
+        <h2>Reconstruct Secret</h2>
+        <p class="desc">Enter your shares below to reconstruct the original secret using Shamir's Secret Sharing scheme.
+        </p>
+        <div class="test-box">
+            <input type="text" id="share-input" class="msg-input" placeholder="Paste your shares here..."
+                maxlength="200">
+            <button id="unsplit-btn" class="msg-btn">Reconstruct</button>
+        </div>
+        <a href="/" class="back-link">&#8592; Back</a>
+        <script>
+            document.getElementById('unsplit-btn').addEventListener('click', function () {
+                var shares = document.getElementById('share-input').value;
+                if (shares.trim() !== '') {
+                    fetch('/unsplit?shares=' + encodeURIComponent(shares));
+                }
+            });
+            document.getElementById('share-input').addEventListener('keydown', function (e) {
+                if (e.key === 'Enter') {
+                    document.getElementById('unsplit-btn').click();
+                }
+            });
+        </script>
+    </div>
+</body>
+
+</html>
