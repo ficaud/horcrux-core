@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.0.2] - 2026-07-18
+## [0.0.3] - 2026-07-18
 
 ### Added
 - Toolchain for ESP32 WROOM-32 boards, including a corresponding Dockerfile, CI build, and scripts to simplify building and flashing firmware on ESP32 WROOM-32 boards.
@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 - Useless files remaining in the repository after the initial release.
 
-## [0.0.1] - 2026-07-14
+## [0.0.2] - 2026-07-14
 
 ### Added
 - Initial release of the Horcrux Box project with basic features and documentation (not an official working release).
