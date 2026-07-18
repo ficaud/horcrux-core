@@ -76,6 +76,12 @@ jobs:
           cp horcrux-connect/build/zephyr/zephyr.elf release-artifacts/${{ matrix.target.artifact }}.elf
           cp horcrux-connect/build/zephyr/zephyr.map release-artifacts/${{ matrix.target.artifact }}.map
 
+      - name: Upload firmware artifact
+        uses: actions/upload-artifact@v5
+        with:
+          name: ${{ matrix.target.artifact }}
+          path: release-artifacts/*
+
       - name: Determine version
         id: version
         run: |
@@ -89,10 +95,11 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
+      - name: Download firmware artifacts
+        uses: actions/download-artifact@v5
         with:
           path: release-artifacts
+          pattern: firmware-*
 
       - name: Flatten artifacts
         run: |
