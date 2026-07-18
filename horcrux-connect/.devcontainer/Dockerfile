@@ -156,7 +156,13 @@ RUN groupadd --gid "${USER_GID}" "${USERNAME}" 2>/dev/null || true; \
         fi; \
     fi; \
     echo "${USERNAME} ALL=(root) NOPASSWD:ALL" > /etc/sudoers.d/"${USERNAME}" && \
-    chmod 0440 /etc/sudoers.d/"${USERNAME}"
+    chmod 0440 /etc/sudoers.d/"${USERNAME}" && \
+    # Safety net: ALL sudo-group members get passwordless sudo. This handles
+    # cases where the devcontainer runtime creates a different user at runtime
+    # (e.g. "ubuntu") with the same UID as USERNAME due to overrideCommand
+    # bypassing the entrypoint.
+    echo "%sudo ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/sudogroup-nopasswd && \
+    chmod 0440 /etc/sudoers.d/sudogroup-nopasswd
 
 # Entrypoint — adjusts UID/GID at runtime for volume-mounted workspaces.
 # Must run as root so it can call usermod/groupmod/chown, then
