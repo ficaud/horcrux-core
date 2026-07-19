@@ -13,7 +13,51 @@ on:
   workflow_dispatch:
 
 jobs:
+  unitary-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Free disk space
+        run: |
+          sudo apt-get clean
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/share/powershell /usr/lib/mono /usr/local/julia* /opt/hostedtoolcache
+          df -h /
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build devcontainer image
+        uses: docker/build-push-action@v6
+        with:
+          context: horcrux-connect
+          file: horcrux-connect/.devcontainer/Dockerfile
+          load: true
+          tags: zephyr-dev:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and run unit tests
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}:/workspaces/horcrux \
+            -w /workspaces/horcrux \
+            zephyr-dev:latest \
+            bash -c "
+              set -e -x
+              git submodule update --init --recursive
+              cmake -S horcrux-connect/tests -B horcrux-connect/tests/build-native -DCMAKE_BUILD_TYPE=Debug 2>&1
+              cmake --build horcrux-connect/tests/build-native --parallel 2>&1
+              echo '=== Build complete, running tests ==='
+              ctest --test-dir horcrux-connect/tests/build-native --output-on-failure --verbose 2>&1
+            "
+
   build:
+    needs: unitary-tests
     strategy:
       matrix:
         target:

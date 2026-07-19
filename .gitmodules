@@ -1,0 +1,3 @@
+[submodule "horcrux-connect/external/sss"]
+	path = horcrux-connect/external/sss
+	url = https://github.com/dsprenkels/sss.git

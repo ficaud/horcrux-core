@@ -1,0 +1,62 @@
+{
+    "version": 6,
+    "configurePresets": [
+        {
+            "name": "esp32s3",
+            "displayName": "ESP32-S3 (Zephyr)",
+            "description": "Build for ESP32-S3-DevKitC-1 via 'west build -b esp32s3_devkitc/esp32s3/procpu'",
+            "generator": "Ninja",
+            "binaryDir": "build/esp32s3_devkitc",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "MinSizeRel",
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+            }
+        },
+        {
+            "name": "esp32_wroom",
+            "displayName": "ESP32-WROOM-32 (Zephyr)",
+            "description": "Build for ESP32-WROOM-32 via 'west build -b doit_esp32_devkit_v1/esp32/procpu'",
+            "generator": "Ninja",
+            "binaryDir": "build/esp32_wroom_32",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "MinSizeRel",
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+            }
+        },
+        {
+            "name": "tests",
+            "displayName": "Unit tests (Linux / GTest)",
+            "description": "Configure and build native unit tests with Google Test",
+            "generator": "Ninja",
+            "binaryDir": "build/tests",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "BUILD_TESTS": "ON"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "esp32s3",
+            "displayName": "Build ESP32-S3 firmware",
+            "configurePreset": "esp32s3"
+        },
+        {
+            "name": "esp32_wroom",
+            "displayName": "Build ESP32-WROOM-32 firmware",
+            "configurePreset": "esp32_wroom"
+        },
+        {
+            "name": "tests",
+            "displayName": "Build unit tests",
+            "configurePreset": "tests"
+        }
+    ],
+    "testPresets": [
+        {
+            "name": "tests",
+            "displayName": "Run unit tests",
+            "configurePreset": "tests"
+        }
+    ]
+}

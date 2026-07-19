@@ -50,6 +50,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     net-tools \
     screen \
     socat \
+    libgtest-dev \
+    libgmock-dev \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
