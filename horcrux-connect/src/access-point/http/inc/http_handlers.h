@@ -32,12 +32,28 @@ const char *handler_unsplit(const struct http_request *req);
  * @brief Encrypt handler — receives a message to encrypt.
  *
  * Expects a query parameter "msg" with the message to encrypt.
- * Returns a minimal 200 OK response (the JS fetch is fire-and-forget).
+ * Returns a 200 OK with JSON containing the shares.
  *
  * @param req[in] Request parsed by router_parse().
  *
  * @return Complete HTTP response string (static, do not free).
  */
-const char *handler_encrypt(const struct http_request *req);
+const char *handler_divide(const struct http_request *req);
+
+/**
+ * @brief Reconstruct handler — receives shares and reconstructs the secret.
+ *
+ * Expects query parameters:
+ *   s   — number of shares
+ *   d   — comma-separated hex data (e.g. "5a02,77d0,79b7")
+ *   x   — comma-separated x values  (e.g. "1,2,3")
+ *
+ * Returns a 200 OK with the reconstructed secret.
+ *
+ * @param req[in] Request parsed by router_parse().
+ *
+ * @return Complete HTTP response string (static, do not free).
+ */
+const char *handler_reconstruct(const struct http_request *req);
 
 #endif /* ACCESS_POINT_HANDLERS_H */

@@ -11,7 +11,7 @@ extern "C"
 // ===========================================================================
 // Definitions
 // ===========================================================================
-#define HTTP_RESPONSE_COUNT (19)
+#define HTTP_RESPONSE_COUNT (20)
 
 // ===========================================================================
 // Public function declaration
@@ -42,6 +42,7 @@ typedef enum
     HTTP_RESPONSE_TOO_MANY_REQUESTS,
     HTTP_RESPONSE_INTERNAL_SERVER_ERROR,
     HTTP_RESPONSE_SERVICE_UNAVAILABLE,
+    HTTP_RESPONSE_JSON_OK,
     HTTP_RESPONSE_COUNT_INVALID,
     HTTP_RESPONSE_MAX = HTTP_RESPONSE_COUNT,
 } http_response_e;
