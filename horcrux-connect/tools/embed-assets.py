@@ -41,13 +41,29 @@ def read_file(path: str) -> bytes:
         return f.read()
 
 
-def build_page(html_raw: str, css_raw: str | None) -> str:
-    """Inline CSS into HTML, then wrap with HTTP response headers."""
+def build_page(html_raw: str, css_raw: str | None, assets_dir: str) -> str:
+    """Inline CSS and JS into HTML, then wrap with HTTP response headers."""
     if css_raw is not None:
         html_raw = html_raw.replace('<link rel="stylesheet" href="style.css">',
                                     f'<style>\n{css_raw}\n</style>')
         html_raw = html_raw.replace("<link rel='stylesheet' href='style.css'>",
                                     f'<style>\n{css_raw}\n</style>')
+
+    # Inline JavaScript files: <script src="scripts/foo.js"></script>
+    import re
+    def inline_js(match):
+        src = match.group(1)
+        js_path = os.path.join(assets_dir, src)
+        if os.path.isfile(js_path):
+            js_raw = read_file(js_path).decode('utf-8')
+            return f'<script>\n{js_raw}\n</script>'
+        return match.group(0)  # file not found — leave as-is
+
+    html_raw = re.sub(
+        r'<script\s+src="([^"]+)"\s*></script>',
+        inline_js,
+        html_raw,
+    )
 
     return (
         "HTTP/1.1 200 OK\r\n"
@@ -93,7 +109,7 @@ def main():
                 continue
 
             html_raw = read_file(html_path).decode('utf-8')
-            http_response = build_page(html_raw, css_raw)
+            http_response = build_page(html_raw, css_raw, assets_dir)
             escaped = escape_c_string(http_response.encode('utf-8'))
             f.write(f'#define {macro_name} "{escaped}"\n\n')
 
