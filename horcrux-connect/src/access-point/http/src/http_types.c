@@ -114,6 +114,12 @@ const char *http_responses_list[HTTP_RESPONSE_COUNT] = {
                                           "Connection: close\r\n"
                                           "\r\n"
                                           "Service Unavailable",
+    [HTTP_RESPONSE_JSON_OK] = "HTTP/1.1 200 OK\r\n"
+                              "Content-Type: application/json\r\n"
+                              "Content-Length: %zu\r\n"
+                              "Connection: close\r\n"
+                              "\r\n"
+                              "%s",
     [HTTP_RESPONSE_COUNT_INVALID] = "HTTP/1.1 500 Internal Server Error\r\n"
                                     "Content-Type: text/plain\r\n"
                                     "Content-Length: 21\r\n"

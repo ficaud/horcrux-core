@@ -34,7 +34,8 @@ static const struct
     {"/", handler_root},
     {"/split", handler_split},
     {"/unsplit", handler_unsplit},
-    {"/cipher", handler_encrypt},
+    {"/divide", handler_divide},
+    {"/reconstruct", handler_reconstruct},
 };
 
 // ===========================================================================
