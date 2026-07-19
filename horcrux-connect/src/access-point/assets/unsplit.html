@@ -9,31 +9,39 @@
 </head>
 
 <body>
+    <div class="version">v0.0.3</div>
     <div class="card">
         <div class="icon">&#x1F513;</div>
         <h2>Reconstruct Secret</h2>
-        <p class="desc">Enter your 3 shares below to reconstruct the original secret using Shamir's Secret Sharing
-            scheme.
+        <p class="desc">Enter your shares below to reconstruct the original secret using Shamir's Secret Sharing scheme.
         </p>
-        <div class="test-box">
-            <input type="text" id="share-input" class="msg-input" placeholder="Paste your shares here..."
-                maxlength="200">
-            <button id="unsplit-btn" class="msg-btn">Reconstruct</button>
+
+        <div id="share-rows">
+            <div class="share-row">
+                <input type="number" class="x-input" value="1" min="1" max="255" placeholder="x">
+                <input type="text" class="d-input" placeholder='Hex data or "x:hex" e.g. 3:60b5b9...'>
+            </div>
+            <div class="share-row">
+                <input type="number" class="x-input" value="2" min="1" max="255" placeholder="x">
+                <input type="text" class="d-input" placeholder='Hex data or "x:hex" e.g. 4:1352fb...'>
+            </div>
+            <div class="share-row">
+                <input type="number" class="x-input" value="3" min="1" max="255" placeholder="x">
+                <input type="text" class="d-input" placeholder='Hex data or "x:hex" e.g. 5:3aafa8...'>
+            </div>
         </div>
+
+        <button id="unsplit-btn" class="msg-btn" style="width:100%;margin-bottom:16px;">Reconstruct</button>
+
+        <div id="result-box" class="hidden" style="margin-bottom:16px;">
+            <div class="result-label">Reconstructed secret:</div>
+            <div class="result-value" id="result-text"></div>
+            <button id="copy-result" class="copy-btn" style="margin-top:6px;">&#x1F4CB; Copy</button>
+        </div>
+
         <a href="/" class="back-link">&#8592; Back</a>
-        <script>
-            document.getElementById('unsplit-btn').addEventListener('click', function () {
-                var shares = document.getElementById('share-input').value;
-                if (shares.trim() !== '') {
-                    fetch('/unsplit?shares=' + encodeURIComponent(shares));
-                }
-            });
-            document.getElementById('share-input').addEventListener('keydown', function (e) {
-                if (e.key === 'Enter') {
-                    document.getElementById('unsplit-btn').click();
-                }
-            });
-        </script>
+        <div id="toast" class="toast">Copied!</div>
+        <script src="scripts/unsplit.js"></script>
     </div>
 </body>
 
