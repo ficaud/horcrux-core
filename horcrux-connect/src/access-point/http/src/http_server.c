@@ -27,7 +27,7 @@ LOG_MODULE_REGISTER(http, LOG_LEVEL_INF);
 K_THREAD_STACK_DEFINE(http_stack, HTTP_STACK_SIZE);
 static struct k_thread http_thread;
 
-K_THREAD_STACK_DEFINE(https_stack, HTTP_STACK_SIZE);
+K_THREAD_STACK_DEFINE(https_stack, TLS_STACK_SIZE);
 static struct k_thread https_thread;
 
 // ===========================================================================
@@ -68,7 +68,7 @@ int http_server_start(void)
         &http_thread, http_stack, HTTP_STACK_SIZE, http_thread_fn, NULL, NULL, NULL, HTTP_PRIORITY, 0, K_NO_WAIT);
 
     k_thread_create(
-        &https_thread, https_stack, HTTP_STACK_SIZE, tls_thread_fn, NULL, NULL, NULL, HTTP_PRIORITY, 0, K_NO_WAIT);
+        &https_thread, https_stack, TLS_STACK_SIZE, tls_thread_fn, NULL, NULL, NULL, HTTP_PRIORITY, 0, K_NO_WAIT);
 
     return 0;
 }

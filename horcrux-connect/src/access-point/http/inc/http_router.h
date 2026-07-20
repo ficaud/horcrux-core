@@ -8,7 +8,7 @@
 // ===========================================================================
 #define ROUTER_METHOD_MAX (8)
 #define ROUTER_PATH_MAX   (64)
-#define ROUTER_QUERY_MAX  (128)
+#define ROUTER_QUERY_MAX  (1024)
 
 // ===========================================================================
 // Typedef and structure definition

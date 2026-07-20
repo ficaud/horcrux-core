@@ -6,9 +6,10 @@
 // ===========================================================================
 #define HTTP_PORT        (80)
 #define HTTP_BACKLOG     (5)
-#define HTTP_STACK_SIZE  (4096)
+#define HTTP_STACK_SIZE  (8192)
+#define TLS_STACK_SIZE   (2048)
 #define HTTP_PRIORITY    (5)
-#define HTTP_RX_BUF_SIZE (512)
+#define HTTP_RX_BUF_SIZE (1024)
 
 // ===========================================================================
 // Public function declaration
