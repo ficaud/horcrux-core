@@ -39,7 +39,7 @@
     "ZEPHYR_SDK_INSTALL_DIR": "/opt/zephyr-sdk",
     "ZEPHYR_BASE": "/workspaces/horcrux/zephyr"
   },
-  "postCreateCommand": "sudo -n chown -R \"$(whoami):$(id -g)\" /workspaces/horcrux /opt/zephyr-sdk 2>/dev/null || true; cd /workspaces/horcrux && if [ -d .west ]; then west update; else env -u ZEPHYR_BASE west init -l horcrux-connect && env -u ZEPHYR_BASE west update; fi && bash horcrux-connect/tools/download-blobs.sh",
+  "postCreateCommand": "sudo -n chown -R \"$(whoami):$(id -g)\" /workspaces/horcrux /opt/zephyr-sdk 2>/dev/null || true; cd /workspaces/horcrux && if [ -d .west ]; then west update; else mkdir -p .west && printf '[manifest]\\npath = .\\nfile = west.yml\\n\\n[zephyr]\\nbase = zephyr\\n' > .west/config && env -u ZEPHYR_BASE west update; fi && bash tools/download-blobs.sh",
   "overrideCommand": false,
   "updateRemoteUserUID": false,
   "remoteUser": "vscode",

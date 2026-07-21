@@ -16,18 +16,18 @@ The threshold is 3: any 3 out of 5 shares can reconstruct the secret.
 Requires [Emscripten SDK](https://emscripten.org/docs/getting_started/downloads.html):
 
 ```bash
-make -C horcrux-demo clean all
+make -C demo clean all
 ```
 
 Or with Docker:
 
 ```bash
-docker run --rm -v $(pwd)/horcrux-demo:/src emscripten/emsdk:latest make -C /src clean all
+docker run --rm -v $(pwd)/demo:/src emscripten/emsdk:latest make -C /src clean all
 ```
 
 ## How it works
 
-- `src/sss.c` / `src/sss.h` — pure C implementation of Shamir's Secret Sharing over GF(256) using the AES irreducible polynomial (0x11B)
+- `../src/sss/sss.c` / `../src/sss/sss.h` — pure C implementation of Shamir's Secret Sharing over GF(256) using the AES irreducible polynomial (0x11B)
 - `src/main.c` — Emscripten glue exposing `sss_split_wasm` and `sss_combine_wasm`
 - `scripts/app.js` — UI logic bridging WASM memory and the DOM
 - Built by a GitHub Action on every push and deployed to **GitHub Pages**

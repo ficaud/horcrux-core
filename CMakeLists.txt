@@ -15,6 +15,17 @@ if(BUILD_TESTS)
 
 else()
 
+  # Explicitly list Zephyr modules to avoid the module scanner picking up
+  # the self project (root) which contains zephyr/ as a subdirectory.
+  set(ZEPHYR_MODULES
+      ${CMAKE_CURRENT_SOURCE_DIR}/modules/hal/espressif
+      ${CMAKE_CURRENT_SOURCE_DIR}/modules/crypto/mbedtls
+      ${CMAKE_CURRENT_SOURCE_DIR}/bootloader/mcuboot
+      ${CMAKE_CURRENT_SOURCE_DIR}/modules/lib/picolibc
+      ${CMAKE_CURRENT_SOURCE_DIR}/modules/crypto/tf-psa-crypto
+      ${CMAKE_CURRENT_SOURCE_DIR}/modules/lib/zcbor
+  )
+
   find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
   project(wifi_apsta_mode)
 

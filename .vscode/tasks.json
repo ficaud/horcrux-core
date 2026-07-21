@@ -4,9 +4,20 @@
         {
             "label": "Build (esp32s3_devkitc/procpu)",
             "type": "shell",
-            "command": "west build -b esp32s3_devkitc/esp32s3/procpu -d build/esp32s3_devkitc .",
+            "command": "west",
+            "args": [
+                "build",
+                "-b",
+                "esp32s3_devkitc/esp32s3/procpu",
+                "-d",
+                "build",
+                "."
+            ],
             "options": {
-                "cwd": "${workspaceFolder}"
+                "env": {
+                    "ZEPHYR_BASE": "${workspaceFolder}/zephyr",
+                    "ZEPHYR_SDK_INSTALL_DIR": "/opt/zephyr-sdk"
+                }
             },
             "group": {
                 "kind": "build",
@@ -25,9 +36,20 @@
         {
             "label": "Build (esp32_wroom_32/procpu)",
             "type": "shell",
-            "command": "west build -b doit_esp32_devkit_v1/esp32/procpu -d build/esp32_wroom_32 .",
+            "command": "west",
+            "args": [
+                "build",
+                "-b",
+                "doit_esp32_devkit_v1/esp32/procpu",
+                "-d",
+                "build",
+                "."
+            ],
             "options": {
-                "cwd": "${workspaceFolder}"
+                "env": {
+                    "ZEPHYR_BASE": "${workspaceFolder}/zephyr",
+                    "ZEPHYR_SDK_INSTALL_DIR": "/opt/zephyr-sdk"
+                }
             },
             "group": {
                 "kind": "build",
@@ -46,9 +68,22 @@
         {
             "label": "Pristine Build (esp32s3_devkitc/procpu)",
             "type": "shell",
-            "command": "west build -b esp32s3_devkitc/esp32s3/procpu -p always -d build/esp32s3_devkitc .",
+            "command": "west",
+            "args": [
+                "build",
+                "-b",
+                "esp32s3_devkitc/esp32s3/procpu",
+                "-p",
+                "always",
+                "-d",
+                "build",
+                "."
+            ],
             "options": {
-                "cwd": "${workspaceFolder}"
+                "env": {
+                    "ZEPHYR_BASE": "${workspaceFolder}/zephyr",
+                    "ZEPHYR_SDK_INSTALL_DIR": "/opt/zephyr-sdk"
+                }
             },
             "group": "build",
             "problemMatcher": [
@@ -64,9 +99,22 @@
         {
             "label": "Pristine Build (esp32_wroom_32/procpu)",
             "type": "shell",
-            "command": "west build -b doit_esp32_devkit_v1/esp32/procpu -p always -d build/esp32_wroom_32 .",
+            "command": "west",
+            "args": [
+                "build",
+                "-b",
+                "doit_esp32_devkit_v1/esp32/procpu",
+                "-p",
+                "always",
+                "-d",
+                "build",
+                "."
+            ],
             "options": {
-                "cwd": "${workspaceFolder}"
+                "env": {
+                    "ZEPHYR_BASE": "${workspaceFolder}/zephyr",
+                    "ZEPHYR_SDK_INSTALL_DIR": "/opt/zephyr-sdk"
+                }
             },
             "group": "build",
             "problemMatcher": [
@@ -82,10 +130,10 @@
         {
             "label": "Flash ESP32-S3 via JTAG (RPi)",
             "type": "shell",
-            "command": "./tools/flash-esp32s3-jtag.sh",
-            "options": {
-                "cwd": "${workspaceFolder}"
-            },
+            "command": "bash",
+            "args": [
+                "${workspaceFolder}/tools/flash-esp32s3-jtag.sh"
+            ],
             "group": "build",
             "problemMatcher": [],
             "presentation": {

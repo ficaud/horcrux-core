@@ -1,0 +1,13 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "C/C++ Runner: Debug Session",
+      "type": "lldb",
+      "request": "launch",
+      "args": [],
+      "cwd": "/Users/julienfichet/Documents/PROJECTS/horcrux/apsta_mode/src/access-point/src",
+      "program": "/Users/julienfichet/Documents/PROJECTS/horcrux/apsta_mode/src/access-point/src/build/Debug/outDebug"
+    }
+  ]
+}

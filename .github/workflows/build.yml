@@ -34,8 +34,8 @@ jobs:
       - name: Build devcontainer image
         uses: docker/build-push-action@v6
         with:
-          context: horcrux-connect
-          file: horcrux-connect/.devcontainer/Dockerfile
+          context: .
+          file: .devcontainer/Dockerfile
           load: true
           tags: zephyr-dev:latest
           cache-from: type=gha
@@ -50,10 +50,10 @@ jobs:
             bash -c "
               set -e -x
               git submodule update --init --recursive
-              cmake -S horcrux-connect/tests -B horcrux-connect/tests/build-native -DCMAKE_BUILD_TYPE=Debug 2>&1
-              cmake --build horcrux-connect/tests/build-native --parallel 2>&1
+              cmake -S tests -B tests/build-native -DCMAKE_BUILD_TYPE=Debug 2>&1
+              cmake --build tests/build-native --parallel 2>&1
               echo '=== Build complete, running tests ==='
-              ctest --test-dir horcrux-connect/tests/build-native --output-on-failure --verbose 2>&1
+              ctest --test-dir tests/build-native --output-on-failure --verbose 2>&1
             "
 
   build:
@@ -83,8 +83,8 @@ jobs:
       - name: Build devcontainer image
         uses: docker/build-push-action@v6
         with:
-          context: horcrux-connect
-          file: horcrux-connect/.devcontainer/Dockerfile
+          context: .
+          file: .devcontainer/Dockerfile
           load: true
           tags: zephyr-dev:latest
           cache-from: type=gha
@@ -96,13 +96,17 @@ jobs:
             -v ${{ github.workspace }}:/workspaces/horcrux \
             -w /workspaces/horcrux \
             zephyr-dev:latest \
-            bash -c "west init -l horcrux-connect && west update"
+            bash -c '
+              mkdir -p .west &&
+              printf "[manifest]\npath = .\nfile = west.yml\n\n[zephyr]\nbase = zephyr\n" > .west/config &&
+              west update
+            '
 
       - name: Build firmware (${{ matrix.target.board }})
         run: |
           docker run --rm \
             -v ${{ github.workspace }}:/workspaces/horcrux \
-            -w /workspaces/horcrux/horcrux-connect \
+            -w /workspaces/horcrux \
             zephyr-dev:latest \
             west build -b ${{ matrix.target.board }} -p always -d build .
 
@@ -110,5 +114,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.target.artifact }}
-          path: horcrux-connect/build/zephyr/zephyr.bin
+          path: build/zephyr/zephyr.bin
           if-no-files-found: warn

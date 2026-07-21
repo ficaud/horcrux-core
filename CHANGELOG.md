@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - `sss`: Shamir's Secret Sharing algorithm implementation for splitting and reconstructing secrets using GF(2^8) finite fields.
 - `unit_tests/sss`: Unit tests (using Google Test) with deterministic test vectors, as well as cross-validation with the [dsprenkels/sss](https://github.com/dsprenkels/sss) project to ensure correctness of the implementation.
-- Version number display in the captive portal pages to indicate the current version of the Horcrux Box project (#4).
+- Version number display in the captive portal pages to indicate the current version of the Horcrux Core project (#4).
 - Split / unsplit pages: Management of Shamir's Secret Sharing split and reconstruct operations from the captive portal pages using plain text and copy helpers.
 
 ### Changed
@@ -34,4 +34,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.0.2] - 2026-07-14
 
 ### Added
-- Initial release of the Horcrux Box project with basic features and documentation (not an official working release).
+- Initial release of the Horcrux Core project with basic features and documentation (not an official working release).

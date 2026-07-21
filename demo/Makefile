@@ -3,7 +3,7 @@
 # Requires Emscripten SDK:
 #   docker run --rm -v $(PWD):/src emscripten/emsdk make -C /src
 #
-# References the horcrux-connect sss.c directly (no copy).
+# References the parent project sss.c directly (no copy).
 
 EMCC = emcc
 CFLAGS = -O3 -flto
@@ -16,7 +16,7 @@ WASM_FLAGS = \
 	-s FILESYSTEM=0 \
 	--no-entry
 
-HORCRUX_SSS_DIR = ../horcrux-connect/src/sss
+HORCRUX_SSS_DIR = ../src/sss
 HORCRUX_SSS = $(HORCRUX_SSS_DIR)/sss.c
 SRC = src/main.c src/sys_rand_stub.c $(HORCRUX_SSS)
 INC = -Isrc -Isrc/stubs -I$(HORCRUX_SSS_DIR)

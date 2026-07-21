@@ -176,4 +176,4 @@ RUN chmod +x /usr/local/bin/entrypoint.sh
 # Switch back to root for entrypoint; the script will drop privileges
 USER root
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
-WORKDIR /workspaces/horcrux/horcrux-connect
+WORKDIR /workspaces/horcrux

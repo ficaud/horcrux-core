@@ -8,7 +8,7 @@ on:
   push:
     branches: [main, master, dev/jfi]
     paths:
-      - 'horcrux-demo/**'
+      - 'demo/**'
   workflow_dispatch:
 
 permissions:
@@ -34,16 +34,16 @@ jobs:
             -v ${{ github.workspace }}:/workspace \
             -w /workspace \
             emscripten/emsdk:latest \
-            make -C horcrux-demo clean all
+            make -C demo clean all
 
       - name: Prepare Pages artifact
         run: |
           mkdir -p pages
-          cp horcrux-demo/index.html pages/
-          cp horcrux-demo/style.css  pages/
-          cp horcrux-demo/sss.js     pages/
-          cp horcrux-demo/sss.wasm   pages/
-          cp -r horcrux-demo/scripts pages/
+          cp demo/index.html pages/
+          cp demo/style.css  pages/
+          cp demo/sss.js     pages/
+          cp demo/sss.wasm   pages/
+          cp -r demo/scripts pages/
           ls -la pages/
 
       - name: Upload Pages artifact

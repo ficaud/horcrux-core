@@ -1,1 +1,0 @@
-## WARNING : This is a work in progress. The hardware and software are not yet ready for production use.

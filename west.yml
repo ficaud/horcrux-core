@@ -28,4 +28,4 @@ manifest:
           - zcbor
 
   self:
-    path: horcrux-connect
+    path: .

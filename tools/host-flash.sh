@@ -11,8 +11,8 @@
 #
 # The script uses esptool directly on the Mac's serial port.
 # Default binary paths (per platform):
-#   ESP32-S3 → <project>/build/esp32s3_devkitc/zephyr/zephyr.bin
-#   ESP32     → <project>/build/esp32_wroom_32/zephyr/zephyr.bin
+#   ESP32-S3 → <project>/build/zephyr/zephyr.bin
+#   ESP32     → <project>/build/zephyr/zephyr.bin
 # ============================================================================
 
 set -euo pipefail
@@ -61,13 +61,13 @@ case "$BOARD" in
     CHIP="esp32s3"
     BAUD=921600
     FLASH_OFFSET="0x0"
-    BUILD_DIR="$SCRIPT_DIR/build/esp32s3_devkitc"
+    BUILD_DIR="$SCRIPT_DIR/build"
     ;;
   "$BOARD_ESP32")
     CHIP="esp32"
     BAUD=460800
     FLASH_OFFSET="0x1000"
-    BUILD_DIR="$SCRIPT_DIR/build/esp32_wroom_32"
+    BUILD_DIR="$SCRIPT_DIR/build"
     ;;
 esac
 

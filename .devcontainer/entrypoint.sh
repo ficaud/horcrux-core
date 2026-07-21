@@ -65,7 +65,7 @@ fi
 # Runs before every command so CI docker run --rm also gets blobs without
 # needing an explicit CI step.  If the west workspace isn't initialized
 # yet the script is a no-op.
-BLOB_SCRIPT="/workspaces/horcrux/horcrux-connect/tools/download-blobs.sh"
+BLOB_SCRIPT="/workspaces/horcrux/tools/download-blobs.sh"
 if [ -f "$BLOB_SCRIPT" ]; then
     bash "$BLOB_SCRIPT" 2>/dev/null || true
 fi

@@ -21,7 +21,7 @@ PROJECT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 # shellcheck source=/dev/null
 source "${PROJECT_DIR}/.env"
 
-BUILD_DIR="${PROJECT_DIR}/build/esp32s3_devkitc"
+BUILD_DIR="${PROJECT_DIR}/build"
 BIN="${BUILD_DIR}/zephyr/zephyr.bin"
 ELF="${BUILD_DIR}/zephyr/zephyr.elf"
 WRAPPER="${BUILD_DIR}/zephyr/zephyr-wrapper.bin"

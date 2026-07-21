@@ -46,8 +46,8 @@ jobs:
       - name: Build devcontainer image
         uses: docker/build-push-action@v6
         with:
-          context: horcrux-connect
-          file: horcrux-connect/.devcontainer/Dockerfile
+          context: .
+          file: .devcontainer/Dockerfile
           load: true
           tags: zephyr-dev:latest
           cache-from: type=gha
@@ -59,22 +59,26 @@ jobs:
             -v ${{ github.workspace }}:/workspaces/horcrux \
             -w /workspaces/horcrux \
             zephyr-dev:latest \
-            bash -c "west init -l horcrux-connect && west update"
+            bash -c '
+              mkdir -p .west &&
+              printf "[manifest]\npath = .\nfile = west.yml\n\n[zephyr]\nbase = zephyr\n" > .west/config &&
+              west update
+            '
 
       - name: Build firmware (${{ matrix.target.artifact }})
         run: |
           docker run --rm \
             -v ${{ github.workspace }}:/workspaces/horcrux \
-            -w /workspaces/horcrux/horcrux-connect \
+            -w /workspaces/horcrux \
             zephyr-dev:latest \
             west build -b ${{ matrix.target.board }} -p always -d build .
 
       - name: Prepare release artifact
         run: |
           mkdir -p release-artifacts
-          cp horcrux-connect/build/zephyr/zephyr.bin release-artifacts/${{ matrix.target.artifact }}.bin
-          cp horcrux-connect/build/zephyr/zephyr.elf release-artifacts/${{ matrix.target.artifact }}.elf
-          cp horcrux-connect/build/zephyr/zephyr.map release-artifacts/${{ matrix.target.artifact }}.map
+          cp build/zephyr/zephyr.bin release-artifacts/${{ matrix.target.artifact }}.bin
+          cp build/zephyr/zephyr.elf release-artifacts/${{ matrix.target.artifact }}.elf
+          cp build/zephyr/zephyr.map release-artifacts/${{ matrix.target.artifact }}.map
 
       - name: Upload firmware artifact
         uses: actions/upload-artifact@v5
@@ -121,11 +125,11 @@ jobs:
           tag_name: ${{ steps.version.outputs.tag }}
           name: Release ${{ steps.version.outputs.tag }}
           body: |
-            ## Horcrux-Connect Firmware ${{ steps.version.outputs.tag }}
+            ## Horcrux Core Firmware ${{ steps.version.outputs.tag }}
 
             Firmware for **ESP32-S3-DevKitC-1** and **ESP32-DevKit-V1 (WROOM-32)**.
 
-            Wi-Fi captive portal access point (SSID: `Horcrux-box`).
+            Wi-Fi captive portal access point (SSID: `Horcrux-core`).
 
             ### Flashing instructions
 
