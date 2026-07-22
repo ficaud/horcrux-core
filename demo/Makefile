@@ -4,6 +4,9 @@
 #   docker run --rm -v $(PWD):/src emscripten/emsdk make -C /src
 #
 # References the parent project sss.c directly (no copy).
+# Outputs sss.js / sss.wasm to scripts/ so the WASM-aware JS
+# (split.js, unsplit.js) can load the module from the same directory.
+# HTML pages are served from ../src/access-point/assets/.
 
 EMCC = emcc
 CFLAGS = -O3 -flto
@@ -20,14 +23,18 @@ HORCRUX_SSS_DIR = ../src/sss
 HORCRUX_SSS = $(HORCRUX_SSS_DIR)/sss.c
 SRC = src/main.c src/sys_rand_stub.c $(HORCRUX_SSS)
 INC = -Isrc -Isrc/stubs -I$(HORCRUX_SSS_DIR)
-OUT_WASM = sss.wasm
-OUT_JS = sss.js
+OUT_DIR = scripts
+OUT_WASM = $(OUT_DIR)/sss.wasm
+OUT_JS = $(OUT_DIR)/sss.js
 
 .PHONY: all clean
 
 all: $(OUT_JS) $(OUT_WASM)
 
-$(OUT_JS) $(OUT_WASM): $(SRC)
+$(OUT_DIR):
+	mkdir -p $(OUT_DIR)
+
+$(OUT_JS) $(OUT_WASM): $(SRC) | $(OUT_DIR)
 	$(EMCC) $(CFLAGS) $(INC) $(WASM_FLAGS) -o $(OUT_JS) $(SRC)
 
 clean:

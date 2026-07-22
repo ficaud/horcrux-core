@@ -1,11 +1,28 @@
 /**
- * unsplit.js — Handles the share reconstruction flow.
+ * unsplit.js — Shamir's Secret Sharing reconstruct flow.
  *
- * Collects shares from 3 input rows, sends them to /reconstruct,
- * and displays the recovered secret with a copy button.
+ * Dual-mode: uses WASM (client-side) when sss.js is available (GitHub Pages
+ * demo), falls back to fetch(/reconstruct) on the embedded device.
  */
 
 (function () {
+    'use strict';
+
+    var Module = null;
+    var useWasm = false;
+
+    /* ── WASM bootstrap ── */
+    (function () {
+        var script = document.createElement('script');
+        script.src = 'scripts/sss.js';               // relative to HTML page
+        script.onload = function () {
+            SSS().then(function (m) { Module = m; useWasm = true; });
+        };
+        script.onerror = function () { /* fetch fallback */ };
+        document.head.appendChild(script);
+    })();
+
+    /* ── Shared helpers ── */
     var shareRows = document.querySelectorAll('.share-row');
     var unsplitBtn = document.getElementById('unsplit-btn');
     var resultBox = document.getElementById('result-box');
@@ -41,39 +58,66 @@
         }
     }
 
-    function reconstruct() {
-        var d = [];
-        var x = [];
-
+    /* ── Parse share rows ── */
+    function parseShares() {
+        var d = [], x = [];
         shareRows.forEach(function (row) {
             var xInput = row.querySelector('.x-input');
             var dInput = row.querySelector('.d-input');
             var val = dInput.value.trim();
             if (val === '') return;
 
-            /* Support "x:hex" format (e.g. "3:60b5b9cfc025") */
             var colon = val.indexOf(':');
             if (colon !== -1) {
-                var prefix = val.substring(0, colon);
-                var hexPart = val.substring(colon + 1);
-                x.push(prefix);
-                d.push(hexPart);
+                d.push(val.substring(colon + 1));
+                x.push(parseInt(val.substring(0, colon), 10));
             } else {
-                /* Plain hex — use the separate x input */
-                var xVal = xInput.value.trim();
-                x.push(xVal || '0');
                 d.push(val);
+                x.push(parseInt(xInput.value.trim(), 10) || 0);
             }
         });
+        return { d: d, x: x };
+    }
 
-        if (d.length < 2) {
-            showToast('Enter at least 2 shares');
-            return;
+    /* ── WASM implementation ── */
+    function sizeofShare() { return 264; }
+
+    function reconstructWasm(d, x) {
+        var k = d.length;
+        var secretLen = d[0].length / 2;
+
+        var sharesPtr = Module._malloc(k * sizeofShare());
+        var secretPtr = Module._malloc(secretLen);
+
+        for (var si = 0; si < k; si++) {
+            var sp = sharesPtr + si * sizeofShare();
+            Module.setValue(sp, x[si], 'i8');                 // share.x
+            for (var j = 0; j < secretLen; j++) {
+                var byteVal = parseInt(d[si].substr(j * 2, 2), 16);
+                Module.setValue(sp + 1 + j, byteVal, 'i8');   // share.data[j]
+            }
+            Module.setValue(sp + 260, secretLen, 'i32');      // share.len
         }
 
-        var url = '/reconstruct?d=' + d.join(',') +
-                  '&x=' + x.join(',');
+        var ret = Module._sss_combine_wasm(sharesPtr, k, secretPtr, secretLen);
+        if (ret !== 0) { showToast('Reconstruction failed'); return; }
 
+        var secret = '';
+        for (var bi = 0; bi < secretLen; bi++) {
+            secret += String.fromCharCode(Module.getValue(secretPtr + bi, 'i8') & 0xFF);
+        }
+
+        Module._free(sharesPtr);
+        Module._free(secretPtr);
+
+        resultText.textContent = secret || '(empty)';
+        resultBox.classList.remove('hidden');
+        showToast('Reconstructed!');
+    }
+
+    /* ── Fetch implementation (device) ── */
+    function reconstructFetch(d, x) {
+        var url = '/reconstruct?d=' + d.join(',') + '&x=' + x.join(',');
         fetch(url)
             .then(function (r) {
                 if (!r.ok) throw new Error('HTTP ' + r.status);
@@ -83,9 +127,19 @@
                 resultText.textContent = data.secret || '(empty)';
                 resultBox.classList.remove('hidden');
             })
-            .catch(function (err) {
-                showToast('Error: ' + err.message);
-            });
+            .catch(function (err) { showToast('Error: ' + err.message); });
+    }
+
+    /* ── Entry point ── */
+    function reconstruct() {
+        var parsed = parseShares();
+        if (parsed.d.length < 2) { showToast('Enter at least 2 shares'); return; }
+
+        if (useWasm && Module && Module._sss_combine_wasm) {
+            reconstructWasm(parsed.d, parsed.x);
+        } else {
+            reconstructFetch(parsed.d, parsed.x);
+        }
     }
 
     unsplitBtn.addEventListener('click', reconstruct);
