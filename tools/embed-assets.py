@@ -51,9 +51,12 @@ def build_page(html_raw: str, css_raw: str | None, assets_dir: str) -> str:
 
     # Inline JavaScript files: <script src="scripts/foo.js"></script>
     import re
+    from urllib.parse import urlparse
     def inline_js(match):
         src = match.group(1)
-        js_path = os.path.join(assets_dir, src)
+        # Strip query string (e.g. ?v=2) — used for cache busting on GH Pages
+        path_only = urlparse(src).path
+        js_path = os.path.join(assets_dir, path_only)
         if os.path.isfile(js_path):
             js_raw = read_file(js_path).decode('utf-8')
             return f'<script>\n{js_raw}\n</script>'
