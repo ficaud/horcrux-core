@@ -34,10 +34,16 @@ set(WASM_LINK_FLAGS
 # ---------------------------------------------------------------------------
 # Executable (WASM module)
 # ---------------------------------------------------------------------------
+# Output placed in scripts/ so the WASM-aware JS (split.js, unsplit.js)
+# can load the module from the same directory.
 add_executable(sss.wasm
     src/main.c
     src/sys_rand_stub.c
     ${HORCRUX_CONNECT_SSS_DIR}/sss.c        # reference parent project directly
+)
+
+set_target_properties(sss.wasm PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/scripts"
 )
 
 target_include_directories(sss.wasm PRIVATE

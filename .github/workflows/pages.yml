@@ -8,7 +8,10 @@ on:
   push:
     branches: [main, master, dev/jfi]
     paths:
+      - '.github/workflows/pages.yml'
       - 'demo/**'
+      - 'src/access-point/**'
+      - 'src/sss/**'
   workflow_dispatch:
 
 permissions:
@@ -38,13 +41,16 @@ jobs:
 
       - name: Prepare Pages artifact
         run: |
-          mkdir -p pages
-          cp demo/index.html pages/
-          cp demo/style.css  pages/
-          cp demo/sss.js     pages/
-          cp demo/sss.wasm   pages/
-          cp -r demo/scripts pages/
-          ls -la pages/
+          mkdir -p pages/scripts
+          cp src/access-point/assets/index.html   pages/
+          cp src/access-point/assets/split.html   pages/
+          cp src/access-point/assets/unsplit.html pages/
+          cp src/access-point/assets/style.css    pages/
+          cp demo/scripts/sss.js                  pages/scripts/
+          cp demo/scripts/sss.wasm                pages/scripts/
+          cp src/access-point/assets/scripts/split.js   pages/scripts/
+          cp src/access-point/assets/scripts/unsplit.js pages/scripts/
+          ls -la pages/ pages/scripts/
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
