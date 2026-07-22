@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0] - 2026-07-22
+
+First version of the Horcrux Core project that provides the basics of what it is intended to do: split and reconstruct secrets using Shamir's Secret Sharing (SSS) over GF(256) on an embedded device, with a captive portal to manage the operations.
+
+### Added
+- `demo/wasm`: A new demo page that runs Shamir's Secret Sharing (SSS) entirely in the browser using WebAssembly (WASM) has been built and deployed to GitHub Pages. The demo page allows users to get an overview of the captive portal that will be displayed on the embedded device (#10).
+
+### Changed
+- `horcrux-core`: The old project was renamed to `horcrux-core` and now includes only the embedded firmware with the demo WASM page.
+
+### Removed
+- `readme`: ESPWebTool is no longer used as a means to flash devices because it is unstable, and it's difficult to know if it is still maintained or even working at any given time.
+
 ## [0.0.4] - 2026-07-18
 
 ### Added
