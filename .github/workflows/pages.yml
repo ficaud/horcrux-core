@@ -42,14 +42,32 @@ jobs:
       - name: Prepare Pages artifact
         run: |
           mkdir -p pages/scripts
-          cp src/access-point/assets/index.html   pages/
-          cp src/access-point/assets/split.html   pages/
-          cp src/access-point/assets/unsplit.html pages/
-          cp src/access-point/assets/style.css    pages/
-          cp demo/scripts/sss.js                  pages/scripts/
-          cp demo/scripts/sss.wasm                pages/scripts/
+          cp src/access-point/assets/index.html     pages/
+          cp src/access-point/assets/split.html     pages/
+          cp src/access-point/assets/unsplit.html   pages/
+          cp demo/flash.html                        pages/
+          cp src/access-point/assets/style.css      pages/
+          cp demo/scripts/sss.js                    pages/scripts/
+          cp demo/scripts/sss.wasm                  pages/scripts/
           cp src/access-point/assets/scripts/split.js   pages/scripts/
           cp src/access-point/assets/scripts/unsplit.js pages/scripts/
+
+          # Download firmware binaries from the latest release (same-origin, no CORS)
+          echo "Downloading firmware from latest release..."
+          RELEASE=$(curl -sL https://api.github.com/repos/ficaud/horcrux-core/releases/latest)
+
+          URL_S3=$(echo "$RELEASE" | jq -r '.assets[] | select(.name=="fw-esp32-s3-devkit-c1.bin") | .browser_download_url')
+          echo "ESP32-S3: $URL_S3"
+          curl -sL --fail -o pages/fw-esp32-s3-devkit-c1.bin "$URL_S3"
+
+          URL_ESP32=$(echo "$RELEASE" | jq -r '.assets[] | select(.name=="fw-esp32-devkit-v1.bin") | .browser_download_url')
+          echo "ESP32: $URL_ESP32"
+          curl -sL --fail -o pages/fw-esp32-devkit-v1.bin "$URL_ESP32"
+
+          # Write a tiny manifest for the flash page to read
+          TAG=$(echo "$RELEASE" | jq -r '.tag_name')
+          echo "{\"tag\":\"$TAG\"}" > pages/firmware.json
+
           ls -la pages/ pages/scripts/
 
       - name: Upload Pages artifact

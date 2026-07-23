@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Horcrux — Flash Firmware</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="version">v1.0.0</div>
+
+    <div class="card" style="max-width:420px">
+        <div class="icon">&#x26A1;</div>
+        <h2>Flash Firmware</h2>
+        <p class="desc">
+            Flash the Horcrux firmware to your ESP32 board directly from your browser.
+            No software to install — just a Chrome or Edge browser and a USB cable.
+        </p>
+
+        <!-- Board selection -->
+        <div style="margin-bottom:12px;text-align:left">
+            <label style="font-size:13px;opacity:0.9;display:block;margin-bottom:4px">
+                Select your board:
+            </label>
+            <select id="board-select"
+                style="width:100%;padding:10px 14px;border:none;border-radius:20px;font-size:14px;outline:none;background:rgba(255,255,255,0.85);color:#333">
+                <option value="esp32s3">ESP32-S3 DevKitC-1</option>
+                <option value="esp32">ESP32 DevKit V1 (WROOM-32)</option>
+            </select>
+        </div>
+
+        <!-- Firmware source -->
+        <div style="margin-bottom:12px;text-align:left">
+            <label style="font-size:13px;opacity:0.9;display:block;margin-bottom:4px">
+                Firmware:
+            </label>
+            <button id="release-btn" class="msg-btn" style="width:100%;margin-bottom:6px">
+                Latest GitHub Release
+            </button>
+            <div style="display:flex;gap:6px">
+                <input type="file" id="file-input" accept=".bin"
+                    style="flex:1;font-size:12px;color:#fff;background:rgba(255,255,255,0.15);border:none;border-radius:20px;padding:8px 14px"
+                    title="Or choose a .bin file manually">
+            </div>
+        </div>
+
+        <!-- Status / log -->
+        <pre id="log"
+            style="display:none;background:rgba(0,0,0,0.3);border-radius:8px;padding:10px;font-size:12px;text-align:left;max-height:200px;overflow-y:auto;white-space:pre-wrap;word-break:break-all;margin-bottom:12px;color:#b0ffb0"></pre>
+
+        <!-- Progress bar -->
+        <div id="progress-wrapper" style="display:none;margin-bottom:12px">
+            <div style="background:rgba(255,255,255,0.15);border-radius:10px;overflow:hidden;height:8px">
+                <div id="progress-bar"
+                    style="width:0%;height:100%;background:#4caf50;border-radius:10px;transition:width 0.3s"></div>
+            </div>
+            <div id="progress-text" style="font-size:11px;opacity:0.7;margin-top:4px"></div>
+        </div>
+
+        <!-- Actions -->
+        <button id="connect-btn" class="btn"
+            style="font-size:14px;padding:12px;width:100%;border:none;text-align:center">
+            Connect &amp; Flash
+        </button>
+        <button id="erase-btn" class="btn"
+            style="font-size:14px;padding:10px;width:100%;border:none;text-align:center;background:rgba(255,255,255,0.25);color:#fff;display:none">
+            Erase Flash
+        </button>
+        <a href="index.html" class="back-link">Back</a>
+    </div>
+
+    <script type="module">
+        // ---- esptool-js CDN ----
+        import { ESPLoader, Transport } from 'https://cdn.jsdelivr.net/npm/esptool-js@0.6.0/bundle.js';
+
+        // ---- Board configs ----
+        const BOARDS = {
+            esp32s3: {
+                chip: 'ESP32-S3',
+                baud: 921600,
+                flashOffset: '0x0',
+                reset: 'usb_reset',
+                detectMagic: 9,
+            },
+            esp32: {
+                chip: 'ESP32',
+                baud: 460800,
+                flashOffset: '0x1000',
+                reset: 'default_reset',
+                detectMagic: 15736195,
+            },
+        };
+
+        // ---- DOM refs ----
+        const boardSelect = document.getElementById('board-select');
+        const connectBtn = document.getElementById('connect-btn');
+        const eraseBtn = document.getElementById('erase-btn');
+        const logEl = document.getElementById('log');
+        const fileInput = document.getElementById('file-input');
+        const releaseBtn = document.getElementById('release-btn');
+        const progressWrapper = document.getElementById('progress-wrapper');
+        const progressBar = document.getElementById('progress-bar');
+        const progressText = document.getElementById('progress-text');
+
+        let port = null;
+        let transport = null;
+        let loader = null;
+        let firmwareData = null;
+        let currentBoard = null;
+
+        // ---- Cleanup: close any previous connection ----
+        async function cleanup() {
+            try {
+                loader = null;
+                if (transport) {
+                    try { await transport.disconnect(); } catch (_) { }
+                    transport = null;
+                }
+                port = null;
+            } catch (_) { /* ignore cleanup errors */ }
+        }
+
+        // ---- Force-release any serial ports the browser already holds ----
+        async function releaseAllPorts() {
+            try {
+                const existing = await navigator.serial.getPorts();
+                for (const p of existing) {
+                    try { await p.close(); } catch (_) { }
+                    try { await p.forget(); } catch (_) { }
+                }
+            } catch (_) { }
+        }
+
+        // ---- Logging ----
+        function log(msg, isError = false) {
+            logEl.style.display = 'block';
+            const line = document.createElement('div');
+            line.textContent = msg;
+            line.style.color = isError ? '#ff6b6b' : '#b0ffb0';
+            logEl.appendChild(line);
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+
+        function clearLog() {
+            logEl.innerHTML = '';
+            logEl.style.display = 'none';
+        }
+
+        function setProgress(pct, text) {
+            progressWrapper.style.display = 'block';
+            progressBar.style.width = pct + '%';
+            progressText.textContent = text || '';
+        }
+
+        function hideProgress() {
+            progressWrapper.style.display = 'none';
+            progressBar.style.width = '0%';
+            progressText.textContent = '';
+        }
+
+        function setButtonsEnabled(enabled) {
+            connectBtn.disabled = !enabled;
+            boardSelect.disabled = !enabled;
+            fileInput.disabled = !enabled;
+            releaseBtn.disabled = !enabled;
+            connectBtn.style.opacity = enabled ? '1' : '0.5';
+        }
+
+        // ---- Firmware file names per board (served from same origin) ----
+        const FIRMWARE_FILES = {
+            esp32s3: 'firmware-esp32s3.bin',
+            esp32: 'firmware-esp32-wroom.bin',
+        };
+
+        // ---- Fetch latest firmware ----
+        async function fetchLatestRelease() {
+            const board = boardSelect.value;
+            const boardName = BOARDS[board].chip;
+            const fwFile = FIRMWARE_FILES[board];
+
+            log(`Loading firmware for ${boardName}...`);
+
+            try {
+                // 1. Try to get version info from local manifest
+                let tag = null;
+                try {
+                    const mResp = await fetch('./firmware.json');
+                    if (mResp.ok) {
+                        const manifest = await mResp.json();
+                        tag = manifest.tag;
+                    }
+                } catch { /* optional, ignore */ }
+
+                // 2. If manifest not available, try GitHub API for version
+                if (!tag) {
+                    try {
+                        const apiResp = await fetch(
+                            'https://api.github.com/repos/ficaud/horcrux-core/releases/latest', {
+                            headers: { Accept: 'application/vnd.github.v3+json' }
+                        });
+                        if (apiResp.ok) {
+                            const release = await apiResp.json();
+                            tag = release.tag_name;
+                        }
+                    } catch { /* API failed, continue without tag */ }
+                }
+
+                // 3. Download firmware from same origin (no CORS issue)
+                log(`Downloading ${fwFile}...`);
+                const binResp = await fetch('./' + fwFile);
+                if (!binResp.ok) {
+                    if (binResp.status === 404) {
+                        throw new Error(
+                            `${fwFile} not found on this server.\n` +
+                            'Place the firmware .bin in the same folder for local testing.'
+                        );
+                    }
+                    throw new Error(`Download failed: ${binResp.status}`);
+                }
+
+                const blob = await binResp.blob();
+                firmwareData = new Uint8Array(await blob.arrayBuffer());
+                const kb = (firmwareData.length / 1024).toFixed(1);
+                const label = tag ? `${tag} (${kb} KB)` : `${fwFile} (${kb} KB)`;
+                log(`Loaded ${label}`);
+                releaseBtn.textContent = label;
+                return true;
+
+            } catch (err) {
+                log(`Error: ${err.message || err}`, true);
+                log('Select a .bin file manually instead.', true);
+                return false;
+            }
+        }
+
+        // ---- Flash logic ----
+        function reportProgress(fileIndex, written, total) {
+            const pct = total > 0 ? Math.round((written / total) * 100) : 0;
+            setProgress(pct, `Writing firmware... ${pct}% (${(written / 1024).toFixed(0)} / ${(total / 1024).toFixed(0)} KB)`);
+        }
+
+        async function flashFirmware() {
+            const board = boardSelect.value;
+            const cfg = BOARDS[board];
+            const flashOffset = parseInt(cfg.flashOffset, 16);
+
+            if (!firmwareData || firmwareData.length === 0) {
+                log('No firmware loaded. Select a file or fetch the latest release.', true);
+                return;
+            }
+
+            try {
+                setButtonsEnabled(false);
+                log(`Board: ${cfg.chip}`);
+                log(`Flash offset: ${cfg.flashOffset}`);
+                log(`Baud rate: ${cfg.baud}`);
+
+                loader = new ESPLoader({
+                    transport: transport,
+                    baudrate: cfg.baud,
+                    enableTracing: false,
+                    debugLogging: false,
+                });
+
+                // Safety: force-close port before detectChip opens it
+                // (avoids "port already open" from stale browser handles)
+                try { await port.close(); } catch (_) { }
+
+                // Detect chip — opens port at 115200, syncs, identifies chip
+                log('Connecting...');
+                await loader.detectChip(cfg.reset);
+                log(`Chip detected: ${loader.chip.CHIP_NAME}`);
+
+                // Run stub (software loader for faster flashing)
+                await loader.runStub();
+
+                // Switch to higher baud rate for faster flashing
+                if (loader.romBaudrate !== cfg.baud) {
+                    await loader.changeBaud();
+                }
+
+                // Erase & write
+                log('Erasing & flashing firmware...');
+
+                const fileArray = [{
+                    address: flashOffset,
+                    data: firmwareData,
+                }];
+
+                await loader.writeFlash({
+                    fileArray: fileArray,
+                    flashMode: 'keep',
+                    flashFreq: 'keep',
+                    flashSize: 'keep',
+                    compress: true,
+                    eraseAll: true,
+                    reportProgress: reportProgress,
+                    calculateMD5Hash: false,
+                });
+
+                setProgress(100, 'Flash complete!');
+                log('Firmware flashed successfully!');
+
+                // Hard reset
+                await loader.after('hard_reset');
+                log('Board reset. Done!');
+
+                eraseBtn.style.display = 'block';
+
+            } catch (err) {
+                log(`Error: ${err.message}`, true);
+                hideProgress();
+                await cleanup();
+            } finally {
+                setButtonsEnabled(true);
+            }
+        }
+
+        // ---- Erase flash ----
+        async function eraseFlash() {
+            try {
+                setButtonsEnabled(false);
+                log('Erasing entire flash...');
+
+                await loader.eraseFlash();
+                log('Flash erased!');
+
+                await loader.after('hard_reset');
+                log('Board reset.');
+            } catch (err) {
+                log(`Error: ${err.message}`, true);
+            } finally {
+                setButtonsEnabled(true);
+            }
+        }
+
+        // ---- Connect & Flash button ----
+        connectBtn.addEventListener('click', async () => {
+            clearLog();
+            hideProgress();
+            eraseBtn.style.display = 'none';
+
+            try {
+                // Close any previous connection AND release stale browser-held ports
+                await cleanup();
+                await releaseAllPorts();
+
+                // Request serial port
+                port = await navigator.serial.requestPort();
+                transport = new Transport(port);
+                log('Serial port selected');
+
+                // Load firmware if not already loaded
+                if (!firmwareData || firmwareData.length === 0) {
+                    const ok = await fetchLatestRelease();
+                    if (!ok && (!firmwareData || firmwareData.length === 0)) {
+                        log('No firmware available. Select a .bin file manually.', true);
+                        return;
+                    }
+                }
+
+                await flashFirmware();
+
+            } catch (err) {
+                if (err.name === 'NotFoundError') {
+                    log('No port selected. Please connect your ESP32 board and try again.', true);
+                } else if (err.message && err.message.includes('Failed to connect')) {
+                    log(`Failed to connect. Make sure the board is in download mode:\n` +
+                        `   1. Hold BOOT button\n` +
+                        `   2. Tap RESET button\n` +
+                        `   3. Release BOOT`, true);
+                } else {
+                    log(`Error: ${err.message || err}`, true);
+                }
+                hideProgress();
+                await cleanup();
+            }
+        });
+
+        // ---- Erase button ----
+        eraseBtn.addEventListener('click', eraseFlash);
+
+        // ---- File input ----
+        fileInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            try {
+                const blob = await file.arrayBuffer();
+                firmwareData = new Uint8Array(blob);
+                log(`Loaded: ${file.name} (${(firmwareData.length / 1024).toFixed(1)} KB)`);
+                releaseBtn.textContent = file.name;
+            } catch (err) {
+                log(`Error reading file: ${err.message}`, true);
+            }
+        });
+
+        // ---- Release button ----
+        releaseBtn.addEventListener('click', async () => {
+            clearLog();
+            await fetchLatestRelease();
+        });
+
+        // ---- Board change ----
+        boardSelect.addEventListener('change', () => {
+            firmwareData = null;
+            releaseBtn.textContent = 'Latest GitHub Release';
+            fileInput.value = '';
+            clearLog();
+            hideProgress();
+        });
+
+        // ---- Check WebSerial support ----
+        if (!('serial' in navigator)) {
+            log('Error: WebSerial is not supported in this browser.\n' +
+                '   Please use Chrome or Edge (version 89+).', true);
+            connectBtn.disabled = true;
+            connectBtn.textContent = 'WebSerial not supported';
+            connectBtn.style.opacity = '0.5';
+        }
+
+        console.log('Horcrux Web Flasher ready.');
+    </script>
+</body>
+
+</html>
