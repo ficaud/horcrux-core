@@ -9,7 +9,7 @@
 #define HTTP_STACK_SIZE  (8192)
 #define TLS_STACK_SIZE   (2048)
 #define HTTP_PRIORITY    (5)
-#define HTTP_RX_BUF_SIZE (1024)
+#define HTTP_RX_BUF_SIZE (2048)
 
 // ===========================================================================
 // Public function declaration
