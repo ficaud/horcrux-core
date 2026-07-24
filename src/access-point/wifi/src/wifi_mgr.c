@@ -18,9 +18,13 @@
 
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
+#include <zephyr/net/net_if.h>
 #include <zephyr/net/wifi_mgmt.h>
 
 #include "dhcp.h"
+
+#include <stdio.h>
+#include <string.h>
 
 // ===========================================================================
 // Zephyr logging module registration
@@ -172,6 +176,11 @@ static void wifi_event_handler(struct net_mgmt_event_callback *cb, uint64_t mgmt
 static int enable_ap_mode(struct net_if **ap_iface)
 {
     struct wifi_connect_req_params ap_config;
+    /* SSID buffer: base SSID + "-" + 4 hex digits of MAC = max 32 chars */
+    // Horcrux-XXXX (12 so we define it to 16 to be safe)
+    char ssid_buf[16];
+    // Get the link-layer address of the AP interface to generate a unique SSID
+    struct net_linkaddr *link_addr = net_if_get_link_addr(*ap_iface);
 
     if (!ap_iface || !*ap_iface)
     {
@@ -179,10 +188,29 @@ static int enable_ap_mode(struct net_if **ap_iface)
         return -EIO;
     }
 
+    /* Build dynamic SSID by appending the AP's own MAC address */
+    if (!link_addr || link_addr->len < 6)
+    {
+        LOG_ERR("Failed to get link address for AP interface");
+        return -EIO;
+    }
+
+    // Format the SSID with the base SSID and the last 4 hex digits of the MAC
+    int written = snprintf(
+        ssid_buf, sizeof(ssid_buf), "%s-%02X%02X", CONFIG_WIFI_SAMPLE_AP_SSID, link_addr->addr[4], link_addr->addr[5]);
+
+    if (written < 0 || written >= (int)sizeof(ssid_buf))
+    {
+        LOG_ERR("SSID too long (%d chars, max %zu)", written, sizeof(ssid_buf) - 1);
+        return -ENOBUFS;
+    }
+
+    LOG_INF("AP SSID: %s", ssid_buf);
+
     LOG_INF("Turning on AP Mode");
 
-    ap_config.ssid = (const uint8_t *)CONFIG_WIFI_SAMPLE_AP_SSID;
-    ap_config.ssid_length = sizeof(CONFIG_WIFI_SAMPLE_AP_SSID) - 1;
+    ap_config.ssid = (const uint8_t *)ssid_buf;
+    ap_config.ssid_length = (uint8_t)written;
     ap_config.psk = (const uint8_t *)CONFIG_WIFI_SAMPLE_AP_PSK;
     ap_config.psk_length = sizeof(CONFIG_WIFI_SAMPLE_AP_PSK) - 1;
     ap_config.channel = WIFI_CHANNEL_ANY;
