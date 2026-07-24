@@ -6,7 +6,7 @@ name: Pages
 
 on:
   push:
-    branches: [main, master, dev/jfi]
+    branches: [main, master]
     paths:
       - '.github/workflows/pages.yml'
       - 'demo/**'

@@ -7,9 +7,9 @@ name: Build
 
 on:
   push:
-    branches: [main, master, dev/jfi]
+    branches: [main, master]
   pull_request:
-    branches: [main, master, dev/jfi]
+    branches: [main, master]
   workflow_dispatch:
 
 jobs:
