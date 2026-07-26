@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-07-26
+
+### Added
+- `demo/flash.html`: A new web page has been added to the demo that allows users to flash the Horcrux Core firmware to their ESP32 boards directly from the browser using the Web Serial API.
+- `unsplit.html`: A camera button has been added to allow users to scan a QR code to retrieve the secret from the Horcrux Core device instead of typing it manually (#18).
+- `badges`: Zephyr version badge, build status badge, and demo link badge have been added to the README.md file to provide quick access to relevant information about the project.
+
+### Changed
+- `wifi_mgr`: The Wi-Fi MAC address is now used to customize the access point name (SSID) to avoid conflicts when multiple devices are in the same area (#16).
+- `release`: Artifacts are now renamed to clearly indicate which platform they are built for (ESP32-S3-DevKitC-1 or ESP32-DevKit-V1).
+
+### Fixed
+- `http_server`: Increased the maximum size of the HTTP request body to avoid errors when sending large secrets to split or reconstruct, such as Bitcoin seed phrases.
+
+### Removed
+- `workflow`: Removed the automatic build and pages generation workflow when pushing to the `dev/jfi` branch.
+
 ## [1.0.0] - 2026-07-22
 
 First version of the Horcrux Core project that provides the basics of what it is intended to do: split and reconstruct secrets using Shamir's Secret Sharing (SSS) over GF(256) on an embedded device, with a captive portal to manage the operations.
