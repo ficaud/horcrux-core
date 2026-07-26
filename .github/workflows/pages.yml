@@ -51,6 +51,7 @@ jobs:
           cp demo/scripts/sss.wasm                  pages/scripts/
           cp src/access-point/assets/scripts/split.js   pages/scripts/
           cp src/access-point/assets/scripts/unsplit.js pages/scripts/
+          cp src/access-point/assets/scripts/jsQR.js    pages/scripts/
 
           # Download firmware binaries from the latest release (same-origin, no CORS)
           echo "Downloading firmware from latest release..."

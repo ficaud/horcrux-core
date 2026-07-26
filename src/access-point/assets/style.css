@@ -129,7 +129,7 @@ h2 {
 
 /* ── Utility ── */
 .hidden {
-    display: none;
+    display: none !important;
 }
 
 /* ── Share list (split page) ── */
@@ -294,4 +294,95 @@ h2 {
 
 #result-box .copy-btn.copied {
     background: #4caf50;
+}
+
+/* ── QR scan button ── */
+.qr-btn {
+    flex-shrink: 0;
+    width: 40px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.25);
+    color: #fff;
+    font-size: 18px;
+    cursor: pointer;
+    line-height: 40px;
+    text-align: center;
+    transition: background 0.2s;
+}
+
+.qr-btn:hover {
+    background: rgba(255, 255, 255, 0.45);
+}
+
+/* ── QR scanner overlay (live camera mode) ── */
+.qr-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.qr-overlay-box {
+    position: relative;
+    width: 280px;
+    height: 280px;
+}
+
+.qr-video {
+    width: 100%;
+    height: 100%;
+    border-radius: 12px;
+    object-fit: cover;
+}
+
+.qr-status {
+    position: absolute;
+    bottom: -32px;
+    left: 0;
+    width: 100%;
+    text-align: center;
+    color: #fff;
+    font-size: 13px;
+    opacity: 0.85;
+}
+
+.qr-close {
+    position: absolute;
+    top: -36px;
+    right: 0;
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 24px;
+    cursor: pointer;
+    opacity: 0.7;
+    padding: 4px;
+}
+
+.qr-close:hover {
+    opacity: 1;
+}
+
+/* ── Hidden QR file input (fallback: capture on mobile) ── */
+.qr-file-input {
+    display: none;
+}
+
+/* ── QR scan / Portal notes ── */
+.qr-note,
+.portal-note {
+    font-size: 11px;
+    opacity: 0.7;
+    margin: 4px 0 16px;
+    padding: 0 4px;
+    line-height: 1.4;
+    color: #fff;
 }

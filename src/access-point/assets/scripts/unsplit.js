@@ -154,4 +154,158 @@
     copyResultBtn.addEventListener('click', function () {
         copyText(resultText.textContent, copyResultBtn);
     });
+
+    /* ── QR Code scanner (dual-mode: live camera or capture) ── */
+    var qrFileInput = document.getElementById('qr-file-input');
+    var qrOverlay    = document.getElementById('qr-overlay');
+    var qrVideo      = document.getElementById('qr-video');
+    var qrStatus     = document.getElementById('qr-status');
+    var qrClose      = document.getElementById('qr-close');
+    var qrCanvas     = document.createElement('canvas');
+    var qrCtx        = qrCanvas.getContext('2d', { willReadFrequently: true });
+    var targetRow    = null;
+    var qrStream     = null;
+    var qrAnim       = null;
+
+    var qrBtns = document.querySelectorAll('.qr-btn');
+    qrBtns.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            targetRow = parseInt(btn.getAttribute('data-row'), 10);
+            openQRScanner();
+        });
+    });
+
+    function openQRScanner() {
+        /* Try live camera first (needs HTTPS or localhost) */
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+            navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } } })
+                .then(function (stream) {
+                    qrStream = stream;
+                    qrVideo.srcObject = stream;
+                    qrVideo.play();
+                    qrOverlay.classList.remove('hidden');
+                    qrStatus.textContent = 'Point the camera at a QR code';
+                    startQRScan();
+                })
+                .catch(function () {
+                    /* getUserMedia failed — show guide, then file input */
+                    showToast('📷 Pick from Photo Library (pre-take QR photo with Camera app)');
+                    setTimeout(function () { qrFileInput.click(); }, 800);
+                });
+        } else {
+            /* No getUserMedia — show guide, then file input */
+            showToast('📷 Pick from Photo Library (pre-take QR photo with Camera app)');
+            setTimeout(function () { qrFileInput.click(); }, 800);
+        }
+    }
+
+    function startQRScan() {
+        function tick() {
+            if (qrVideo.readyState >= qrVideo.HAVE_ENOUGH_DATA && qrVideo.videoWidth > 0) {
+                var w = qrVideo.videoWidth, h = qrVideo.videoHeight;
+                if (qrCanvas.width !== w || qrCanvas.height !== h) {
+                    qrCanvas.width = w; qrCanvas.height = h;
+                }
+                qrCtx.drawImage(qrVideo, 0, 0, w, h);
+                var imgData = qrCtx.getImageData(0, 0, w, h);
+                var code = jsQR(imgData.data, w, h, { inversionAttempts: 'attemptBoth' });
+                if (code && code.data) {
+                    stopQRScan();
+                    fillShareFromQR(code.data.trim());
+                    return;
+                }
+            }
+            qrAnim = requestAnimationFrame(tick);
+        }
+        qrAnim = requestAnimationFrame(tick);
+    }
+
+    function stopQRScan() {
+        if (qrAnim) { cancelAnimationFrame(qrAnim); qrAnim = null; }
+        if (qrStream) { qrStream.getTracks().forEach(function (t) { t.stop(); }); qrStream = null; }
+        qrVideo.srcObject = null;
+        qrOverlay.classList.add('hidden');
+    }
+
+    qrClose.addEventListener('click', stopQRScan);
+    qrOverlay.addEventListener('click', function (e) {
+        if (e.target === qrOverlay) stopQRScan();
+    });
+
+    /* Fallback: decode from file/capture image */
+    qrFileInput.addEventListener('change', function () {
+        var file = qrFileInput.files[0];
+        if (!file) return;
+        var reader = new FileReader();
+        reader.onload = function (e) {
+            var img = new Image();
+            img.onload = function () {
+                /* Downscale large images — jsQR works best at moderate resolution */
+                var MAX = 800;
+                var w = img.width, h = img.height;
+                if (w > MAX || h > MAX) {
+                    var ratio = Math.min(MAX / w, MAX / h);
+                    w = Math.round(w * ratio);
+                    h = Math.round(h * ratio);
+                }
+                var code = decodeQRFromImage(img, w, h);
+                if (code) {
+                    fillShareFromQR(code);
+                } else {
+                    showToast('No QR code found in image');
+                }
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+
+    /* Try all 4 rotations — handles EXIF-rotated iPhone photos */
+    function decodeQRFromImage(img, w, h) {
+        qrCanvas.width = w; qrCanvas.height = h;
+
+        /* 0° */   qrCtx.drawImage(img, 0, 0, w, h);
+        var r = tryDecode(w, h); if (r) return r;
+
+        /* 90° */  qrCtx.save(); qrCtx.translate(h, 0); qrCtx.rotate(Math.PI / 2);
+                    qrCtx.drawImage(img, 0, 0, w, h); qrCtx.restore();
+        r = tryDecode(h, w); if (r) return r;
+
+        /* 180° */ qrCtx.save(); qrCtx.translate(w, h); qrCtx.rotate(Math.PI);
+                    qrCtx.drawImage(img, 0, 0, w, h); qrCtx.restore();
+        r = tryDecode(w, h); if (r) return r;
+
+        /* 270° */ qrCtx.save(); qrCtx.translate(0, w); qrCtx.rotate(-Math.PI / 2);
+                    qrCtx.drawImage(img, 0, 0, w, h); qrCtx.restore();
+        r = tryDecode(h, w); if (r) return r;
+
+        return null;
+    }
+
+    function tryDecode(w, h) {
+        var imgData = qrCtx.getImageData(0, 0, w, h);
+        var code = jsQR(imgData.data, w, h, { inversionAttempts: 'attemptBoth' });
+        return code ? code.data.trim() : null;
+    }
+
+    function fillShareFromQR(text) {
+        var row = shareRows[targetRow];
+        if (!row) return;
+
+        var xInput = row.querySelector('.x-input');
+        var dInput = row.querySelector('.d-input');
+
+        var colon = text.indexOf(':');
+        if (colon !== -1) {
+            var xVal = text.substring(0, colon);
+            var dVal = text.substring(colon + 1);
+            xInput.value = parseInt(xVal, 10) || 1;
+            dInput.value = dVal;
+        } else {
+            dInput.value = text;
+        }
+
+        showToast('QR code scanned!');
+    }
+
 })();
