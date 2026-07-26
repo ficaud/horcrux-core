@@ -62,9 +62,9 @@ jobs:
       matrix:
         target:
           - board: esp32s3_devkitc/esp32s3/procpu
-            artifact: firmware-esp32s3
+            artifact: fw-esp32-s3-devkitc-1
           - board: doit_esp32_devkit_v1/esp32/procpu
-            artifact: firmware-esp32-wroom
+            artifact: fw-esp32-devkit-v1
     runs-on: ubuntu-latest
 
     steps:
@@ -110,9 +110,13 @@ jobs:
             zephyr-dev:latest \
             west build -b ${{ matrix.target.board }} -p always -d build .
 
+      - name: Rename firmware binary
+        run: |
+          cp build/zephyr/zephyr.bin build/zephyr/${{ matrix.target.artifact }}.bin
+
       - name: Archive firmware (${{ matrix.target.artifact }})
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.target.artifact }}
-          path: build/zephyr/zephyr.bin
+          path: build/zephyr/${{ matrix.target.artifact }}.bin
           if-no-files-found: warn
