@@ -9,7 +9,7 @@
 </head>
 
 <body>
-    <div class="version">v1.0.0</div>
+    <div class="version">v1.1.0</div>
     <div class="card">
         <div class="icon">&#x1F513;</div>
         <h2>Reconstruct Secret</h2>
@@ -55,8 +55,8 @@
     <!-- Live camera overlay (used when getUserMedia is available) -->
     <div id="qr-overlay" class="qr-overlay hidden">
         <div class="qr-overlay-box">
-            <video id="qr-video" class="qr-video" playsinline autoplay muted></video>
-            <div class="qr-status" id="qr-status"></div>
+            <div id="qr-reader" class="qr-reader"></div>
+            <div class="qr-status" id="qr-status">Point the camera at a QR code</div>
             <button id="qr-close" class="qr-close" title="Close">&#x2715;</button>
         </div>
     </div>
