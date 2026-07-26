@@ -1,5 +1,9 @@
 # Horcrux Core
 
+[![Zephyr](https://img.shields.io/badge/zephyr-v4.4.1-4B32C3?logo=zephyr)](https://www.zephyrproject.org/)
+[![Build](https://github.com/ficaud/horcrux-core/actions/workflows/build.yml/badge.svg)](https://github.com/ficaud/horcrux-core/actions/workflows/build.yml)
+[![Demo](https://img.shields.io/badge/demo-online-764ba2)](https://ficaud.github.io/horcrux-core/)
+
 Easy to use, offline, open source, and secure secret sharing for your digital life.
 
 Horcrux Core is a firmware for ESP32 boards that implements Shamir's Secret Sharing algorithm to split and recover secrets (like passwords, private keys, bitcoin seed phrases etc.) in a secure way.
