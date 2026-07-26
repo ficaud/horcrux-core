@@ -57,16 +57,24 @@ jobs:
           echo "Downloading firmware from latest release..."
           RELEASE=$(curl -sL https://api.github.com/repos/ficaud/horcrux-core/releases/latest)
 
-          URL_S3=$(echo "$RELEASE" | jq -r '.assets[] | select(.name=="fw-esp32-s3-devkit-c1.bin") | .browser_download_url')
-          echo "ESP32-S3: $URL_S3"
-          curl -sL --fail -o pages/fw-esp32-s3-devkit-c1.bin "$URL_S3"
+          URL_S3=$(echo "$RELEASE" | jq -r '.assets[] | select(.name=="fw-esp32-s3-devkitc-1.bin") | .browser_download_url')
+          if [ -n "$URL_S3" ]; then
+            echo "ESP32-S3: $URL_S3"
+            curl -sL --fail -o pages/fw-esp32-s3-devkitc-1.bin "$URL_S3"
+          else
+            echo "ESP32-S3: no release yet, skipping firmware download"
+          fi
 
           URL_ESP32=$(echo "$RELEASE" | jq -r '.assets[] | select(.name=="fw-esp32-devkit-v1.bin") | .browser_download_url')
-          echo "ESP32: $URL_ESP32"
-          curl -sL --fail -o pages/fw-esp32-devkit-v1.bin "$URL_ESP32"
+          if [ -n "$URL_ESP32" ]; then
+            echo "ESP32: $URL_ESP32"
+            curl -sL --fail -o pages/fw-esp32-devkit-v1.bin "$URL_ESP32"
+          else
+            echo "ESP32: no release yet, skipping firmware download"
+          fi
 
           # Write a tiny manifest for the flash page to read
-          TAG=$(echo "$RELEASE" | jq -r '.tag_name')
+          TAG=$(echo "$RELEASE" | jq -r '.tag_name // "latest"')
           echo "{\"tag\":\"$TAG\"}" > pages/firmware.json
 
           ls -la pages/ pages/scripts/

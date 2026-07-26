@@ -25,9 +25,9 @@ jobs:
       matrix:
         target:
           - board: esp32s3_devkitc/esp32s3/procpu
-            artifact: firmware-esp32s3
+            artifact: fw-esp32-s3-devkitc-1
           - board: doit_esp32_devkit_v1/esp32/procpu
-            artifact: firmware-esp32-wroom
+            artifact: fw-esp32-devkit-v1
     runs-on: ubuntu-latest
 
     steps:
@@ -136,13 +136,13 @@ jobs:
             **ESP32-S3** (flash offset `0x0`):
             ```bash
             esptool --chip esp32s3 --port <PORT> --baud 921600 \
-              write-flash 0x0 firmware-esp32s3.bin
+              write-flash 0x0 fw-esp32-s3-devkitc-1.bin
             ```
 
             **ESP32 (WROOM-32)** (flash offset `0x1000`):
             ```bash
             esptool --chip esp32 --port <PORT> --baud 460800 \
-              write-flash 0x1000 firmware-esp32-wroom.bin
+              write-flash 0x1000 fw-esp32-devkit-v1.bin
             ```
 
             > **Note:** ESP32 requires offset `0x1000` because the first 4 KB flash sector is reserved by the ROM bootloader.
