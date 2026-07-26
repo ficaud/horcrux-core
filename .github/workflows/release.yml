@@ -103,7 +103,7 @@ jobs:
         uses: actions/download-artifact@v5
         with:
           path: release-artifacts
-          pattern: firmware-*
+          pattern: fw-*
 
       - name: Flatten artifacts
         run: |
