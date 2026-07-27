@@ -155,7 +155,7 @@
         copyText(resultText.textContent, copyResultBtn);
     });
 
-    /* ── QR Code scanner (dual-mode: live camera or capture) ── */
+    /* ── QR Code scanner (dual-mode: live camera or file picker) ── */
     var qrFileInput = document.getElementById('qr-file-input');
     var qrOverlay    = document.getElementById('qr-overlay');
     var qrVideo      = document.getElementById('qr-video');
@@ -166,6 +166,7 @@
     var targetRow    = null;
     var qrStream     = null;
     var qrAnim       = null;
+    var cameraFailed = false;
 
     var qrBtns = document.querySelectorAll('.qr-btn');
     qrBtns.forEach(function (btn) {
@@ -176,9 +177,14 @@
     });
 
     function openQRScanner() {
-        /* Try live camera first (needs HTTPS or localhost) */
-        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-            navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } } })
+        // Only try live camera on secure contexts (HTTPS / localhost).
+        // On HTTP (ESP32 on 192.168.4.1) or after a previous failure we go
+        // directly to file picker — synchronous .click() works on iOS Safari.
+        if (!cameraFailed && window.isSecureContext &&
+            navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+            navigator.mediaDevices.getUserMedia({
+                video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } }
+            })
                 .then(function (stream) {
                     qrStream = stream;
                     qrVideo.srcObject = stream;
@@ -188,14 +194,12 @@
                     startQRScan();
                 })
                 .catch(function () {
-                    /* getUserMedia failed — show guide, then file input */
-                    showToast('📷 Pick from Photo Library (pre-take QR photo with Camera app)');
-                    setTimeout(function () { qrFileInput.click(); }, 800);
+                    cameraFailed = true;
+                    showToast('Camera unavailable — tap \uD83D\uDCF7 again');
                 });
         } else {
-            /* No getUserMedia — show guide, then file input */
-            showToast('📷 Pick from Photo Library (pre-take QR photo with Camera app)');
-            setTimeout(function () { qrFileInput.click(); }, 800);
+            // Synchronous user-gesture path — no setTimeout!
+            qrFileInput.click();
         }
     }
 
@@ -203,12 +207,10 @@
         function tick() {
             if (qrVideo.readyState >= qrVideo.HAVE_ENOUGH_DATA && qrVideo.videoWidth > 0) {
                 var w = qrVideo.videoWidth, h = qrVideo.videoHeight;
-                if (qrCanvas.width !== w || qrCanvas.height !== h) {
-                    qrCanvas.width = w; qrCanvas.height = h;
-                }
+                qrCanvas.width = w; qrCanvas.height = h;
                 qrCtx.drawImage(qrVideo, 0, 0, w, h);
-                var imgData = qrCtx.getImageData(0, 0, w, h);
-                var code = jsQR(imgData.data, w, h, { inversionAttempts: 'attemptBoth' });
+                var code = jsQR(qrCtx.getImageData(0, 0, w, h).data, w, h,
+                    { inversionAttempts: 'attemptBoth' });
                 if (code && code.data) {
                     stopQRScan();
                     fillShareFromQR(code.data.trim());
@@ -232,60 +234,81 @@
         if (e.target === qrOverlay) stopQRScan();
     });
 
-    /* Fallback: decode from file/capture image */
+    /* ── File / gallery scan ── */
     qrFileInput.addEventListener('change', function () {
         var file = qrFileInput.files[0];
         if (!file) return;
-        var reader = new FileReader();
-        reader.onload = function (e) {
-            var img = new Image();
-            img.onload = function () {
-                /* Downscale large images — jsQR works best at moderate resolution */
-                var MAX = 800;
-                var w = img.width, h = img.height;
-                if (w > MAX || h > MAX) {
-                    var ratio = Math.min(MAX / w, MAX / h);
-                    w = Math.round(w * ratio);
-                    h = Math.round(h * ratio);
-                }
-                var code = decodeQRFromImage(img, w, h);
-                if (code) {
-                    fillShareFromQR(code);
-                } else {
-                    showToast('No QR code found in image');
-                }
-            };
-            img.src = e.target.result;
+        qrFileInput.value = '';   // allow re-selecting the same file
+
+        var url = URL.createObjectURL(file);
+        var img = new Image();
+        img.onload = function () {
+            URL.revokeObjectURL(url);
+            var text = decodeFromImg(img);
+            if (text) { fillShareFromQR(text); }
+            else { showToast('No QR code found — try a clearer photo'); }
         };
-        reader.readAsDataURL(file);
+        img.onerror = function () {
+            URL.revokeObjectURL(url);
+            showToast('Could not load the image');
+        };
+        img.src = url;
     });
 
-    /* Try all 4 rotations — handles EXIF-rotated iPhone photos */
-    function decodeQRFromImage(img, w, h) {
-        qrCanvas.width = w; qrCanvas.height = h;
+    /* ── Multi-scale × 4-rotation decode (handles iPhone EXIF) ──
+       Each rotation + scale combo uses its own canvas dimensions so
+       getImageData never overflows.  jsQR works best when the QR module
+       area is roughly 200-1500 px wide; we sweep 4 targets × 4 rotations.
+       Rendering is nearest-neighbour when downscaling > 2× — keeps QR
+       module edges sharp instead of blurring them via bilinear resample. ── */
+    function decodeFromImg(img) {
+        var iw = img.naturalWidth, ih = img.naturalHeight;
+        if (!iw || !ih) return null;
 
-        /* 0° */   qrCtx.drawImage(img, 0, 0, w, h);
-        var r = tryDecode(w, h); if (r) return r;
+        var targets = [1000, 1500, 600, 400];
 
-        /* 90° */  qrCtx.save(); qrCtx.translate(h, 0); qrCtx.rotate(Math.PI / 2);
-                    qrCtx.drawImage(img, 0, 0, w, h); qrCtx.restore();
-        r = tryDecode(h, w); if (r) return r;
+        // { drawWidth, drawHeight, rotation-radians, translateX, translateY }
+        var steps = [
+            { dw: iw,  dh: ih,  angle: 0,            tx: 0,   ty: 0   },
+            { dw: ih,  dh: iw,  angle:  Math.PI / 2,  tx: ih,  ty: 0   },
+            { dw: iw,  dh: ih,  angle:  Math.PI,      tx: iw,  ty: ih  },
+            { dw: ih,  dh: iw,  angle: -Math.PI / 2,  tx: 0,   ty: iw  }
+        ];
 
-        /* 180° */ qrCtx.save(); qrCtx.translate(w, h); qrCtx.rotate(Math.PI);
-                    qrCtx.drawImage(img, 0, 0, w, h); qrCtx.restore();
-        r = tryDecode(w, h); if (r) return r;
+        for (var si = 0; si < steps.length; si++) {
+            var s = steps[si];
+            for (var ti = 0; ti < targets.length; ti++) {
+                var longSide = Math.max(s.dw, s.dh);
+                var scale = Math.min(1, targets[ti] / longSide);
+                var w = Math.round(s.dw * scale);
+                var h = Math.round(s.dh * scale);
+                if (w < 60 || h < 60) continue;
 
-        /* 270° */ qrCtx.save(); qrCtx.translate(0, w); qrCtx.rotate(-Math.PI / 2);
-                    qrCtx.drawImage(img, 0, 0, w, h); qrCtx.restore();
-        r = tryDecode(h, w); if (r) return r;
+                // Resize canvas for this specific rotation + scale.
+                qrCanvas.width  = w;
+                qrCanvas.height = h;
+                qrCtx.imageSmoothingEnabled = (scale > 0.5);
 
+                if (s.angle === 0) {
+                    qrCtx.setTransform(1, 0, 0, 1, 0, 0);
+                    qrCtx.drawImage(img, 0, 0, w, h);
+                } else {
+                    qrCtx.setTransform(
+                         Math.cos(s.angle) * scale, Math.sin(s.angle) * scale,
+                        -Math.sin(s.angle) * scale, Math.cos(s.angle) * scale,
+                        s.tx * scale, s.ty * scale
+                    );
+                    qrCtx.drawImage(img, 0, 0);
+                }
+
+                var code = jsQR(
+                    qrCtx.getImageData(0, 0, w, h).data, w, h,
+                    { inversionAttempts: 'attemptBoth' }
+                );
+                if (code && code.data) return code.data.trim();
+            }
+        }
         return null;
-    }
-
-    function tryDecode(w, h) {
-        var imgData = qrCtx.getImageData(0, 0, w, h);
-        var code = jsQR(imgData.data, w, h, { inversionAttempts: 'attemptBoth' });
-        return code ? code.data.trim() : null;
     }
 
     function fillShareFromQR(text) {
