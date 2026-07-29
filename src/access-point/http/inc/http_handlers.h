@@ -56,4 +56,16 @@ const char *handler_divide(const struct http_request *req);
  */
 const char *handler_reconstruct(const struct http_request *req);
 
+/**
+ * @brief QR Code SVG handler — generates a QR Code as an SVG image.
+ *
+ * Encodes the text from query parameter "text"
+ * and returns it as an SVG image with Content-Type: image/svg+xml.
+ *
+ * @param req[in] Request parsed by router_parse().
+ *
+ * @return Complete HTTP response string (static, do not free).
+ */
+const char *handler_qr_svg(const struct http_request *req);
+
 #endif /* ACCESS_POINT_HANDLERS_H */

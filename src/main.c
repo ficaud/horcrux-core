@@ -13,7 +13,7 @@ LOG_MODULE_REGISTER(MAIN);
 int main(void)
 {
     int ret;
-    // Wifi manager initlialization for AP mode
+    // Wifi manager initialization for AP mode
     ret = wifi_mgr_init();
     LOG_INF("Wi-Fi AP mode initialized, ret: %d", ret);
 
@@ -23,6 +23,6 @@ int main(void)
     // HTTP server start
     http_server_start();
 
-    LOG_INF("Captive portal started");
+    LOG_INF("Captive portal started. QR code: http://<device-ip>/qr.svg");
     return 0;
 }

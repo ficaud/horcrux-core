@@ -40,6 +40,7 @@ else()
       src/access-point/wifi/src/wifi_mgr.c
       src/sss/sss.c
       src/qrcode/qr_encode.c
+      src/svg/qrcode_to_svg.c
   )
 
   # Auto-generate page_captive.h from assets (HTML + CSS)
@@ -69,6 +70,7 @@ else()
       src/access-point/assets
       src/sss
       src/qrcode
+      src/svg
   )
 
 endif()
