@@ -120,6 +120,12 @@ const char *http_responses_list[HTTP_RESPONSE_COUNT] = {
                               "Connection: close\r\n"
                               "\r\n"
                               "%s",
+    [HTTP_RESPONSE_QR_CODE_GENERATION_FAILED] = "HTTP/1.1 500 Internal Server Error\r\n"
+                                                "Content-Type: text/plain\r\n"
+                                                "Content-Length: 25\r\n"
+                                                "Connection: close\r\n"
+                                                "\r\n"
+                                                "QR Code generation failed",
     [HTTP_RESPONSE_COUNT_INVALID] = "HTTP/1.1 500 Internal Server Error\r\n"
                                     "Content-Type: text/plain\r\n"
                                     "Content-Length: 21\r\n"

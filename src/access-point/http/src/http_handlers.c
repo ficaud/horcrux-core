@@ -16,6 +16,8 @@
 
 #include "http_types.h"
 #include "page_captive.h"
+#include "qr_encode.h"
+#include "qrcode_to_svg.h"
 #include "sss.h"
 
 #include <ctype.h>
@@ -584,4 +586,60 @@ static int get_token(const char *s, int index, char *out, size_t out_size)
         start++; /* skip ',' */
         current++;
     }
+}
+
+const char *handler_qr_svg(const struct http_request *req)
+{
+    const char *ret = http_responses_list[HTTP_RESPONSE_BAD_REQUEST];
+    static char svg_buf[QR_SVG_BUF_SIZE];
+    static uint8_t qr_temp[qrcodegen_BUFFER_LEN_MAX];
+    static uint8_t qr_code[qrcodegen_BUFFER_LEN_MAX];
+    static char text_buf[1024];
+
+    /* Extract "text" query parameter, default to "hello world" */
+    const char *text;
+    char raw_text[1024];
+    if (get_query_param(req->query, "text", raw_text, sizeof(raw_text)) == 0)
+    {
+        url_decode(text_buf, raw_text, sizeof(text_buf));
+        text = text_buf;
+    }
+    else
+    {
+        ret = http_responses_list[HTTP_RESPONSE_BAD_REQUEST];
+        goto exit;
+    }
+
+    /* Generate the QR Code (ECC LOW, mask AUTO, versions 1-40) */
+    bool ok = qrcodegen_encodeText(text, qr_temp, qr_code);
+    if (!ok)
+    {
+        ret = http_responses_list[HTTP_RESPONSE_QR_CODE_GENERATION_FAILED];
+        goto exit;
+    }
+
+    /* Write the HTTP response headers */
+    int n = snprintf(svg_buf,
+                     sizeof(svg_buf),
+                     "HTTP/1.1 200 OK\r\n"
+                     "Content-Type: image/svg+xml\r\n"
+                     "Connection: close\r\n"
+                     "\r\n");
+    if (n < 0 || (size_t)n >= sizeof(svg_buf))
+    {
+        ret = http_responses_list[HTTP_RESPONSE_QR_CODE_GENERATION_FAILED];
+        goto exit;
+    }
+
+    /* Render the QR code as a pure SVG document, appended after the headers */
+    if (qrcode_to_svg(qr_code, qrcodegen_getSize(qr_code), svg_buf + n, sizeof(svg_buf) - n) < 0)
+    {
+        ret = http_responses_list[HTTP_RESPONSE_QR_CODE_GENERATION_FAILED];
+        goto exit;
+    }
+
+    ret = svg_buf;
+
+exit:
+    return (ret);
 }

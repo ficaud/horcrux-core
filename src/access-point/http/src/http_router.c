@@ -36,6 +36,7 @@ static const struct
     {"/unsplit.html", handler_unsplit},
     {"/divide", handler_divide},
     {"/reconstruct", handler_reconstruct},
+    {"/qr.svg", handler_qr_svg},
 };
 
 // ===========================================================================
