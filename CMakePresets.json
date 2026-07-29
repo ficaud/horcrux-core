@@ -9,7 +9,8 @@
             "binaryDir": "build/esp32s3_devkitc",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "MinSizeRel",
-                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+                "BOARD": "esp32s3_devkitc/esp32s3/procpu"
             }
         },
         {
@@ -20,7 +21,8 @@
             "binaryDir": "build/esp32_wroom_32",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "MinSizeRel",
-                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+                "BOARD": "doit_esp32_devkit_v1/esp32/procpu"
             }
         },
         {
