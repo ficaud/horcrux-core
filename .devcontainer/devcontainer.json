@@ -19,7 +19,6 @@
         "zephyrproject-rtos.zephyr-ide",
         "marus25.cortex-debug",
         "xaver.clang-format",
-        "llvm-vs-code-extensions.vscode-clangd",
         "vizards.deepseek-v4-for-copilot"
       ],
       "settings": {
