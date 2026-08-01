@@ -1,11 +1,11 @@
-# Makefile — Build SSS WASM demo
+# Makefile — Build SSS + QR WASM demo
 #
 # Requires Emscripten SDK:
 #   docker run --rm -v $(PWD):/src emscripten/emsdk make -C /src
 #
-# References the parent project sss.c directly (no copy).
-# Outputs sss.js / sss.wasm to scripts/ so the WASM-aware JS
-# (split.js, unsplit.js) can load the module from the same directory.
+# References the parent project sss.c and qr_encode.c directly (no copy).
+# Outputs sss.js / sss.wasm and qr.js / qr.wasm to scripts/ so the WASM-aware
+# JS (split.js, unsplit.js) can load the modules from the same directory.
 # HTML pages are served from ../src/access-point/assets/.
 
 EMCC = emcc
@@ -27,9 +27,27 @@ OUT_DIR = scripts
 OUT_WASM = $(OUT_DIR)/sss.wasm
 OUT_JS = $(OUT_DIR)/sss.js
 
+# ── QR Code WASM ──
+
+QR_WASM_FLAGS = \
+	-s MODULARIZE=1 \
+	-s EXPORT_NAME=QRWasm \
+	-s EXPORTED_FUNCTIONS=_wasm_qr_generate,_wasm_qr_free,_malloc,_free \
+	-s EXPORTED_RUNTIME_METHODS=ccall,cwrap,getValue,setValue,UTF8ToString,stringToUTF8,lengthBytesUTF8 \
+	-s NO_EXIT_RUNTIME=1 \
+	-s FILESYSTEM=0 \
+	--no-entry
+
+HORCRUX_QR_DIR = ../src/qrcode
+HORCRUX_SVG_DIR = ../src/svg
+QR_SRC = src/qr_wasm.c $(HORCRUX_QR_DIR)/qr_encode.c $(HORCRUX_SVG_DIR)/qrcode_to_svg.c
+QR_INC = -I$(HORCRUX_QR_DIR) -I$(HORCRUX_SVG_DIR)
+QR_OUT_WASM = $(OUT_DIR)/qr.wasm
+QR_OUT_JS = $(OUT_DIR)/qr.js
+
 .PHONY: all clean
 
-all: $(OUT_JS) $(OUT_WASM)
+all: $(OUT_JS) $(OUT_WASM) $(QR_OUT_JS) $(QR_OUT_WASM)
 
 $(OUT_DIR):
 	mkdir -p $(OUT_DIR)
@@ -37,5 +55,8 @@ $(OUT_DIR):
 $(OUT_JS) $(OUT_WASM): $(SRC) | $(OUT_DIR)
 	$(EMCC) $(CFLAGS) $(INC) $(WASM_FLAGS) -o $(OUT_JS) $(SRC)
 
+$(QR_OUT_JS) $(QR_OUT_WASM): $(QR_SRC) | $(OUT_DIR)
+	$(EMCC) $(CFLAGS) $(QR_INC) $(QR_WASM_FLAGS) -o $(QR_OUT_JS) $(QR_SRC)
+
 clean:
-	rm -f $(OUT_JS) $(OUT_WASM)
+	rm -f $(OUT_JS) $(OUT_WASM) $(QR_OUT_JS) $(QR_OUT_WASM)
