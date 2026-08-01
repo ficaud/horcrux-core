@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 # Devcontainer for Zephyr RTOS development on ESP32-S3-DevKitC-1
-# Includes: Zephyr SDK (xtensa-esp32s3 toolchain), west, esptool, clang-format
+# Includes: Zephyr SDK (xtensa-esp32s3 toolchain), west, esptool, clang-format, clangd
 
 FROM ubuntu:24.04
 
@@ -42,6 +42,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     unzip \
     doxygen \
     clang-format \
+    clangd \
     libsdl2-dev \
     libmagic1 \
     lz4 \
@@ -52,6 +53,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     socat \
     libgtest-dev \
     libgmock-dev \
+    ripgrep \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -136,13 +138,41 @@ RUN ARCH="$(uname -m)" \
     && echo "SDK installed successfully (${TOOLCHAIN_ESP32S3} and ${TOOLCHAIN_ESP32} verified)"
 
 # ------------------------------------------------------------------
-# 4. Environment setup
+# 4. Neovim and Lazygit
+# ------------------------------------------------------------------
+ENV NVIM_VERSION=0.11.2
+ENV LAZYGIT_VERSION=0.45.2
+
+RUN ARCH="$(uname -m)" \
+    && case "${ARCH}" in \
+        x86_64) N_ARCH="x86_64" ;; \
+        aarch64|arm64) N_ARCH="arm64" ;; \
+        *) echo "Unsupported architecture: ${ARCH}" && exit 1 ;; \
+    esac \
+    # 4a. Neovim
+    && NVIM_URL="https://github.com/neovim/neovim/releases/download/v${NVIM_VERSION}/nvim-linux-${N_ARCH}.tar.gz" \
+    && echo "Downloading Neovim ${NVIM_VERSION} for ${N_ARCH}..." \
+    && wget -q --show-progress --tries=5 --timeout=120 -O /tmp/nvim.tar.gz "${NVIM_URL}" \
+    && tar -xzf /tmp/nvim.tar.gz -C /opt/ \
+    && ln -sf /opt/nvim-linux-${N_ARCH}/bin/nvim /usr/local/bin/nvim \
+    && rm /tmp/nvim.tar.gz \
+    # 4b. Lazygit
+    && LAZYGIT_URL="https://github.com/jesseduffield/lazygit/releases/download/v${LAZYGIT_VERSION}/lazygit_${LAZYGIT_VERSION}_Linux_${N_ARCH}.tar.gz" \
+    && echo "Downloading Lazygit ${LAZYGIT_VERSION} for ${N_ARCH}..." \
+    && wget -q --show-progress --tries=5 --timeout=120 -O /tmp/lazygit.tar.gz "${LAZYGIT_URL}" \
+    && tar -xzf /tmp/lazygit.tar.gz -C /usr/local/bin/ lazygit \
+    && rm /tmp/lazygit.tar.gz \
+    && nvim --version | head -1 \
+    && lazygit --version
+
+# ------------------------------------------------------------------
+# 5. Environment setup
 # ------------------------------------------------------------------
 ENV ZEPHYR_TOOLCHAIN_VARIANT=zephyr
 ENV ZEPHYR_BASE=/workspaces/horcrux/zephyr
 
 # ------------------------------------------------------------------
-# 5. Non-root user
+# 6. Non-root user
 # ------------------------------------------------------------------
 ARG USERNAME=vscode
 ARG USER_UID=1000
@@ -165,6 +195,15 @@ RUN groupadd --gid "${USER_GID}" "${USERNAME}" 2>/dev/null || true; \
     # bypassing the entrypoint.
     echo "%sudo ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/sudogroup-nopasswd && \
     chmod 0440 /etc/sudoers.d/sudogroup-nopasswd
+
+# ------------------------------------------------------------------
+# 7. LazyVim (Neovim configuration)
+# ------------------------------------------------------------------
+RUN mkdir -p /home/${USERNAME}/.config \
+    && git clone --depth 1 https://github.com/LazyVim/starter /home/${USERNAME}/.config/nvim \
+    && rm -rf /home/${USERNAME}/.config/nvim/.git \
+    && chown -R ${USERNAME}:${USER_GID} /home/${USERNAME}/.config \
+    && echo "LazyVim installed"
 
 # Entrypoint — adjusts UID/GID at runtime for volume-mounted workspaces.
 # Must run as root so it can call usermod/groupmod/chown, then
