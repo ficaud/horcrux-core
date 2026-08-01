@@ -10,7 +10,7 @@
 # RPI_IP_ADDRESS is defined in ../.env
 
 mon reset halt
-load build/zephyr/zephyr-wrapper.elf
+load build-esp32s3/zephyr/zephyr-wrapper.elf
 mon reset
 detach
 quit

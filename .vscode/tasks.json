@@ -4,14 +4,10 @@
         {
             "label": "Build (esp32s3_devkitc/procpu)",
             "type": "shell",
-            "command": "west",
+            "command": "bash",
             "args": [
-                "build",
-                "-b",
-                "esp32s3_devkitc/esp32s3/procpu",
-                "-d",
-                "build",
-                "."
+                "-lc",
+                "west build -b esp32s3_devkitc/esp32s3/procpu -d build-esp32s3 . && ln -sfn \"${workspaceFolder}/build-esp32s3/compile_commands.json\" \"${workspaceFolder}/compile_commands.json\""
             ],
             "options": {
                 "env": {
@@ -36,14 +32,10 @@
         {
             "label": "Build (esp32_wroom_32/procpu)",
             "type": "shell",
-            "command": "west",
+            "command": "bash",
             "args": [
-                "build",
-                "-b",
-                "doit_esp32_devkit_v1/esp32/procpu",
-                "-d",
-                "build",
-                "."
+                "-lc",
+                "west build -b doit_esp32_devkit_v1/esp32/procpu -d build-esp32wroom . && ln -sfn \"${workspaceFolder}/build-esp32wroom/compile_commands.json\" \"${workspaceFolder}/compile_commands.json\""
             ],
             "options": {
                 "env": {
@@ -68,16 +60,10 @@
         {
             "label": "Pristine Build (esp32s3_devkitc/procpu)",
             "type": "shell",
-            "command": "west",
+            "command": "bash",
             "args": [
-                "build",
-                "-b",
-                "esp32s3_devkitc/esp32s3/procpu",
-                "-p",
-                "always",
-                "-d",
-                "build",
-                "."
+                "-lc",
+                "west build -b esp32s3_devkitc/esp32s3/procpu -p always -d build-esp32s3 . && ln -sfn \"${workspaceFolder}/build-esp32s3/compile_commands.json\" \"${workspaceFolder}/compile_commands.json\""
             ],
             "options": {
                 "env": {
@@ -99,16 +85,10 @@
         {
             "label": "Pristine Build (esp32_wroom_32/procpu)",
             "type": "shell",
-            "command": "west",
+            "command": "bash",
             "args": [
-                "build",
-                "-b",
-                "doit_esp32_devkit_v1/esp32/procpu",
-                "-p",
-                "always",
-                "-d",
-                "build",
-                "."
+                "-lc",
+                "west build -b doit_esp32_devkit_v1/esp32/procpu -p always -d build-esp32wroom . && ln -sfn \"${workspaceFolder}/build-esp32wroom/compile_commands.json\" \"${workspaceFolder}/compile_commands.json\""
             ],
             "options": {
                 "env": {

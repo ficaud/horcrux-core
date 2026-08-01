@@ -21,7 +21,9 @@ PROJECT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 # shellcheck source=/dev/null
 source "${PROJECT_DIR}/.env"
 
-BUILD_DIR="${PROJECT_DIR}/build"
+# The ESP32-S3 firmware is built into build-esp32s3/ by the VS Code task
+# "Build (esp32s3_devkitc/procpu)". Allow override via BUILD_DIR env var.
+BUILD_DIR="${BUILD_DIR:-${PROJECT_DIR}/build-esp32s3}"
 BIN="${BUILD_DIR}/zephyr/zephyr.bin"
 ELF="${BUILD_DIR}/zephyr/zephyr.elf"
 WRAPPER="${BUILD_DIR}/zephyr/zephyr-wrapper.bin"
