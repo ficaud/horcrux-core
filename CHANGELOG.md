@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1] - 2026-08-02
+
+### Added
+- `.clangd`: Added a clangd configuration file to use clangd as the C/C++ language server instead of the VSCode IntelliSense engine, providing more accurate parsing and indexing of the project.
+- `logo`: Added a new logo to the project in the readme and the flash page.
+- `test_qrcode.cpp`: Added new unit tests for the QR code generation and parsing ([#17](https://github.com/ficaud/horcrux-core/issues/17)).
+- `test_svg.cpp`: Added new unit tests for the SVG generation from QR codes 
+([#17](https://github.com/ficaud/horcrux-core/issues/17)).
+
+### Changed
+- `devcontainer`: Update the devcontainer to install nvim, clangd, lazyvim, lazygit and ohmyzsh to ease the development experience.
+- `dns.c`: Only accept url "horcrux.co" to serve the captive portal ([#29](https://github.com/ficaud/horcrux-core/issues/29)).
+
+### Fixed
+- `release.yml`: Removed the `.elf` and `.map` files from the release artifacts and updated the release README with the new instructions to flash the ESP32.
+- `qrcode_to_svg`, `qr_encode`: Minor fixes to pass the unit tests.
+
 ## [1.2.0] - 2026-08-01
 
 ### Added
