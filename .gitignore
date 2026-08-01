@@ -51,3 +51,6 @@ venv/
 ### Sensitive
 .env
 public.pem
+
+### auto generated captive portal
+/src/access-point/assets/page_captive.h
