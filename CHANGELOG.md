@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-08-01
+
+### Added
+- `split.html`: QR code creation and SVG rendering have been added to the split page to allow users to easily share secrets with others by scanning the QR code ([#19](https://github.com/ficaud/horcrux-core/issues/19)).
+- GPLv3 license has been added to the project to ensure that it remains free and open-source for all users ([#24](https://github.com/ficaud/horcrux-core/issues/24)).
+
+### Fixed
+- `flash.html`: Replaced the back button with a back-to-demo page button (for the WASM demo).
+- `devcontainer`: Removed `clangd`, which was causing conflicts with IntelliSense in VSCode and was not needed for the project.
+- `c_cpp_properties.json`: Fixed the compiler path and the overall configuration to ensure that the project is properly parsed and indexed by the C/C++ extension in VSCode.
+- `http_handler`: Moved some local buffers to static to reduce stack usage and avoid stack overflow when sending large secrets to split or reconstruct.
+
+### Removed
+- `contribution`: Left the contribution documentation empty for now, as it is not yet ready to be published. It will be added in a future release.
+- `page_captive.h`: Removed the auto-generated captive portal header for ESP32 firmware, as it does not need to be versioned by Git ([#26](https://github.com/ficaud/horcrux-core/issues/26)).
+
 ## [1.1.1] - 2026-07-27
 
 ### Fixed
