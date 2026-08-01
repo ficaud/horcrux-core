@@ -48,6 +48,36 @@ if [ -n "$EFFECTIVE_USER" ] && [ "$EFFECTIVE_USER" != "$USERNAME" ]; then
     chmod 440 "/etc/sudoers.d/$EFFECTIVE_USER"
 fi
 
+# ---- Bridge Neovim config for effective user ---------------------------
+# devcontainer.json mounts host nvim config at /home/$USERNAME/.config/nvim.
+# If runtime user differs (e.g. ubuntu), link it into that user's HOME so
+# `nvim` still loads LazyVim.
+if [ -n "$EFFECTIVE_USER" ]; then
+    EFFECTIVE_HOME="$(getent passwd "$EFFECTIVE_USER" | cut -d: -f6)"
+    SOURCE_NVIM="/home/$USERNAME/.config/nvim"
+    TARGET_NVIM="$EFFECTIVE_HOME/.config/nvim"
+
+    if [ -d "$SOURCE_NVIM" ] || [ -L "$SOURCE_NVIM" ]; then
+        mkdir -p "$EFFECTIVE_HOME/.config"
+        if [ ! -e "$TARGET_NVIM" ] && [ ! -L "$TARGET_NVIM" ]; then
+            ln -s "$SOURCE_NVIM" "$TARGET_NVIM" 2>/dev/null || true
+        fi
+    fi
+
+    # ---- Bridge .gitconfig for effective user --------------------------
+    # devcontainer.json mounts host .gitconfig at /home/$USERNAME/.gitconfig.
+    # If runtime user differs (e.g. ubuntu), link it into that user's HOME
+    # so git/lazygit pick up the host user.name / user.email.
+    SOURCE_GITCONFIG="/home/$USERNAME/.gitconfig"
+    TARGET_GITCONFIG="$EFFECTIVE_HOME/.gitconfig"
+
+    if [ -f "$SOURCE_GITCONFIG" ] || [ -L "$SOURCE_GITCONFIG" ]; then
+        if [ ! -e "$TARGET_GITCONFIG" ] && [ ! -L "$TARGET_GITCONFIG" ]; then
+            ln -s "$SOURCE_GITCONFIG" "$TARGET_GITCONFIG" 2>/dev/null || true
+        fi
+    fi
+fi
+
 # Always ensure $USERNAME has passwordless sudo, even if an earlier
 # usermod/groupmod operation failed or the Dockerfile-created sudoers
 # file was lost (e.g. container restart without full rebuild).
