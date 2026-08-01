@@ -125,27 +125,14 @@ jobs:
           tag_name: ${{ steps.version.outputs.tag }}
           name: Release ${{ steps.version.outputs.tag }}
           body: |
-            ## Horcrux Core Firmware ${{ steps.version.outputs.tag }}
+            ## How to flash the firmware ${{ steps.version.outputs.tag }}
 
-            Firmware for **ESP32-S3-DevKitC-1** and **ESP32-DevKit-V1 (WROOM-32)**.
-
-            Wi-Fi captive portal access point (SSID: `Horcrux-core`).
-
-            ### Flashing instructions
-
-            **ESP32-S3** (flash offset `0x0`):
-            ```bash
-            esptool --chip esp32s3 --port <PORT> --baud 921600 \
-              write-flash 0x0 fw-esp32-s3-devkitc-1.bin
-            ```
-
-            **ESP32 (WROOM-32)** (flash offset `0x1000`):
-            ```bash
-            esptool --chip esp32 --port <PORT> --baud 460800 \
-              write-flash 0x1000 fw-esp32-devkit-v1.bin
-            ```
-
-            > **Note:** ESP32 requires offset `0x1000` because the first 4 KB flash sector is reserved by the ROM bootloader.
+            1. Open the [web flasher](https://ficaud.github.io/horcrux-core/flash.html) in Chrome or Edge.
+            2. Connect your ESP32 board via USB.
+            3. Put the board in download mode:
+                * Hold BOOT, tap RESET, release BOOT.
+            4. Click Connect & Flash, select the serial port when prompted.
+            5. Wait for the progress bar to complete — done!
           files: flattened/*
           draft: true
           generate_release_notes: false
