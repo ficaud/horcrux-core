@@ -23,22 +23,26 @@ set(SSS_RANDOMBYTES_DIR ${SSS_REF_DIR}/randombytes)
 # ---------------------------------------------------------------------------
 # Source paths
 # ---------------------------------------------------------------------------
-set(SSS_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../src/sss)
+set(SSS_SRC_DIR    ${CMAKE_CURRENT_SOURCE_DIR}/../src/sss)
+set(QRCODE_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../src/qrcode)
 
 # ---------------------------------------------------------------------------
-# Test executable
+# sss_test — Shamir + QR Code tests (combined executable)
 # ---------------------------------------------------------------------------
 add_executable(sss_test
     main.cpp
     test_sss.cpp
+    test_qrcode.cpp
     mockup/sys_rand_stub.c                   # Linux stub for Zephyr's sys_rand_get()
     ${SSS_SRC_DIR}/sss.c                      # Our Shamir implementation
+    ${QRCODE_SRC_DIR}/qr_encode.c             # QR Code generator
     ${SSS_REF_DIR}/hazmat.c                      # sss_ref low-level SSS
     ${SSS_RANDOMBYTES_DIR}/randombytes.c         # dsprenkels/randombytes
 )
 
 target_include_directories(sss_test PRIVATE
     ${SSS_SRC_DIR}                               # for shamir.h
+    ${QRCODE_SRC_DIR}                            # for qr_encode.h
     ${SSS_REF_DIR}                               # for hazmat.h
     ${SSS_RANDOMBYTES_DIR}                       # for randombytes.h
     ${CMAKE_CURRENT_SOURCE_DIR}/stubs            # for <zephyr/random/random.h>
@@ -50,6 +54,28 @@ target_link_libraries(sss_test PRIVATE
 )
 
 # ---------------------------------------------------------------------------
-# Register test with ctest
+# qrcode_test — QR Code tests only (standalone executable)
+# Build with: cmake --build tests/build-native --target qrcode_test
+# ---------------------------------------------------------------------------
+add_executable(qrcode_test
+    main.cpp
+    test_qrcode.cpp
+    ${QRCODE_SRC_DIR}/qr_encode.c             # QR Code generator
+)
+
+target_include_directories(qrcode_test PRIVATE
+    ${QRCODE_SRC_DIR}                            # for qr_encode.h
+)
+
+target_link_libraries(qrcode_test PRIVATE
+    GTest::GTest
+    GTest::Main
+)
+
+# ---------------------------------------------------------------------------
+# Register tests with ctest
 # ---------------------------------------------------------------------------
 add_test(NAME sss_test COMMAND sss_test)
+
+# Launch the QR code unit tests (QRCodeTest suite) via the dedicated binary.
+add_test(NAME qrcode_test COMMAND qrcode_test)
