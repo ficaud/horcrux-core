@@ -4,6 +4,7 @@
 
 ### Build artifacts (west / CMake / Zephyr)
 build/
+build-*/
 compile_commands.json
 build-container/
 tests/build-native/
