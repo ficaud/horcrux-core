@@ -129,6 +129,15 @@ static int numCharCountBits(qrcodegen_Mode mode, int version);
 
 bool qrcodegen_encodeText(const char *text, uint8_t tempBuffer[], uint8_t qrcode[])
 {
+    if (text == NULL || tempBuffer == NULL || qrcode == NULL)
+    {
+        if (qrcode != NULL)
+        {
+            qrcode[0] = 0; /* Invalid size sentinel */
+        }
+        return false;
+    }
+
     size_t textLen = strlen(text);
 
     /* Build a single segment in the most compact supported mode. */
