@@ -57,6 +57,28 @@
         }
     }
 
+    function downloadQR(shareText, index) {
+        var url = '/qr.svg?text=' + encodeURIComponent(shareText);
+        fetch(url)
+            .then(function (r) {
+                if (!r.ok) throw new Error('QR generation failed');
+                return r.blob();
+            })
+            .then(function (blob) {
+                var a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = 'share-' + (index + 1) + '-qr.svg';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(a.href);
+                showToast('QR downloaded!');
+            })
+            .catch(function (err) {
+                showToast('Error: ' + err.message);
+            });
+    }
+
     function displayShares(shares) {
         shareList.innerHTML = '';
         shareList.classList.remove('hidden');
@@ -87,6 +109,16 @@
             btn.addEventListener('click', function () {
                 copyText(shareText, btn);
             });
+
+            /* QR Code download button */
+            var qrBtn = document.createElement('button');
+            qrBtn.className = 'qr-btn';
+            qrBtn.textContent = '\u{1F4F7}';
+            qrBtn.title = 'Download QR code for share #' + (i + 1);
+            qrBtn.addEventListener('click', function () {
+                downloadQR(shareText, i);
+            });
+            item.appendChild(qrBtn);
 
             shareList.appendChild(item);
 
