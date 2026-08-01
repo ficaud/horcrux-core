@@ -1,0 +1,305 @@
+// SPDX-License-Identifier: Apache-2.0
+//
+// Unit tests for the QR Code generator (qr_encode.c / qr_encode.h).
+
+#include "qr_encode.h"
+
+extern "C"
+{
+}
+
+#include <cstring>
+#include <gtest/gtest.h>
+#include <string>
+#include <vector>
+
+// ===========================================================================
+// Test helpers
+// ===========================================================================
+
+namespace
+{
+
+// Buffer large enough for any QR Code (version 40).
+constexpr size_t kBufLen = qrcodegen_BUFFER_LEN_MAX;
+
+/**
+ * @brief Read a single module (pixel) of the QR Code grid.
+ *
+ * Mirrors the internal getModuleBounded() layout: qrcode[0] holds the side
+ * length, the module grid is packed from byte 1, row-major, LSB first.
+ *
+ * @param qrcode  QR Code buffer produced by qrcodegen_encodeText().
+ * @param x       Column (0 = left).
+ * @param y       Row (0 = top).
+ * @return true if the module is dark, false if light or out of bounds.
+ */
+bool getModule(const uint8_t qrcode[], int x, int y)
+{
+    int size = qrcode[0];
+    if (x < 0 || y < 0 || x >= size || y >= size)
+    {
+        return false;
+    }
+    int index = y * size + x;
+    return ((qrcode[(index >> 3) + 1] >> (index & 7)) & 1) != 0;
+}
+
+/**
+ * @brief Encode text and return the QR Code buffer.
+ *
+ * @param text  UTF-8 text to encode.
+ * @return true on success, false on failure.
+ */
+bool encodeText(const std::string &text, uint8_t qrcode[kBufLen])
+{
+    uint8_t temp[kBufLen];
+    return qrcodegen_encodeText(text.c_str(), temp, qrcode);
+}
+
+/**
+ * @brief Check that the three finder patterns (position detection squares)
+ *        are present at the expected corners of the QR Code.
+ *
+ * Each finder pattern is a 7x7 dark square with a 3x3 dark center and a
+ * 1-module light ring. We verify the four corners of the outer square and
+ * the center module.
+ *
+ * @param qrcode  QR Code buffer.
+ * @param size    Side length in modules.
+ */
+void expectFinderPattern(const uint8_t qrcode[], int size, int ox, int oy)
+{
+    // Outer 7x7 square corners are dark.
+    EXPECT_TRUE(getModule(qrcode, ox, oy));
+    EXPECT_TRUE(getModule(qrcode, ox + 6, oy));
+    EXPECT_TRUE(getModule(qrcode, ox, oy + 6));
+    EXPECT_TRUE(getModule(qrcode, ox + 6, oy + 6));
+
+    // Center 3x3 square is dark.
+    EXPECT_TRUE(getModule(qrcode, ox + 3, oy + 3));
+
+    // The ring just inside the outer square is light (separator).
+    EXPECT_FALSE(getModule(qrcode, ox + 1, oy + 1));
+    EXPECT_FALSE(getModule(qrcode, ox + 5, oy + 1));
+    EXPECT_FALSE(getModule(qrcode, ox + 1, oy + 5));
+    EXPECT_FALSE(getModule(qrcode, ox + 5, oy + 5));
+}
+
+} // namespace
+
+// ===========================================================================
+// Test fixture
+// ===========================================================================
+
+class QRCodeTest : public ::testing::Test
+{
+  protected:
+    uint8_t qrcode_[kBufLen];
+    uint8_t temp_[kBufLen];
+};
+
+// ===========================================================================
+// Tests
+// ===========================================================================
+
+// ---------------------------------------------------------------------------
+// Basic encoding
+// ---------------------------------------------------------------------------
+
+TEST_F(QRCodeTest, EncodeShortText)
+{
+    ASSERT_TRUE(qrcodegen_encodeText("Hello, world!", temp_, qrcode_));
+    int size = qrcodegen_getSize(qrcode_);
+    EXPECT_GE(size, 21); // version 1 minimum
+    EXPECT_LE(size, 177); // version 40 maximum
+    EXPECT_EQ(size % 4, 1); // size = 4*version + 17
+}
+
+TEST_F(QRCodeTest, EncodeEmptyString)
+{
+    ASSERT_TRUE(qrcodegen_encodeText("", temp_, qrcode_));
+    EXPECT_GE(qrcodegen_getSize(qrcode_), 21);
+}
+
+TEST_F(QRCodeTest, EncodeNumericText)
+{
+    // Numeric mode: digits only.
+    ASSERT_TRUE(qrcodegen_encodeText("0123456789", temp_, qrcode_));
+    EXPECT_GE(qrcodegen_getSize(qrcode_), 21);
+}
+
+TEST_F(QRCodeTest, EncodeAlphanumericText)
+{
+    // Alphanumeric mode: uppercase letters, digits and a few symbols.
+    ASSERT_TRUE(qrcodegen_encodeText("HELLO WORLD 123", temp_, qrcode_));
+    EXPECT_GE(qrcodegen_getSize(qrcode_), 21);
+}
+
+TEST_F(QRCodeTest, EncodeByteText)
+{
+    // Byte mode: mixed case / symbols force byte encoding.
+    ASSERT_TRUE(qrcodegen_encodeText("Hello, World! 123", temp_, qrcode_));
+    EXPECT_GE(qrcodegen_getSize(qrcode_), 21);
+}
+
+TEST_F(QRCodeTest, EncodeUtf8Text)
+{
+    // UTF-8 multibyte characters (byte mode).
+    ASSERT_TRUE(qrcodegen_encodeText("café — 日本語", temp_, qrcode_));
+    EXPECT_GE(qrcodegen_getSize(qrcode_), 21);
+}
+
+// ---------------------------------------------------------------------------
+// Size / version selection
+// ---------------------------------------------------------------------------
+
+TEST_F(QRCodeTest, SizeIncreasesWithContentLength)
+{
+    std::string shortText = "A";
+    std::string longText(200, 'A');
+
+    uint8_t shortQr[kBufLen];
+    uint8_t longQr[kBufLen];
+
+    ASSERT_TRUE(encodeText(shortText, shortQr));
+    ASSERT_TRUE(encodeText(longText, longQr));
+
+    int shortSize = qrcodegen_getSize(shortQr);
+    int longSize = qrcodegen_getSize(longQr);
+
+    EXPECT_GE(longSize, shortSize) << "Longer content should not produce a smaller QR Code";
+}
+
+TEST_F(QRCodeTest, SizeIsMultipleOfFourPlusOne)
+{
+    ASSERT_TRUE(qrcodegen_encodeText("Horcrux Core", temp_, qrcode_));
+    int size = qrcodegen_getSize(qrcode_);
+    EXPECT_EQ((size - 17) % 4, 0);
+    EXPECT_GE(size, 21);
+    EXPECT_LE(size, 177);
+}
+
+// ---------------------------------------------------------------------------
+// Determinism
+// ---------------------------------------------------------------------------
+
+TEST_F(QRCodeTest, SameInputProducesSameOutput)
+{
+    uint8_t qr1[kBufLen];
+    uint8_t qr2[kBufLen];
+
+    ASSERT_TRUE(encodeText("deterministic", qr1));
+    ASSERT_TRUE(encodeText("deterministic", qr2));
+
+    int size = qrcodegen_getSize(qr1);
+    ASSERT_EQ(size, qrcodegen_getSize(qr2));
+
+    // Compare the full grid (byte 0 = size, then the module bytes).
+    size_t bytes = (size * size + 7) / 8 + 1;
+    EXPECT_EQ(std::memcmp(qr1, qr2, bytes), 0) << "Same input must produce identical QR Codes";
+}
+
+TEST_F(QRCodeTest, DifferentInputProducesDifferentOutput)
+{
+    uint8_t qr1[kBufLen];
+    uint8_t qr2[kBufLen];
+
+    ASSERT_TRUE(encodeText("first", qr1));
+    ASSERT_TRUE(encodeText("second", qr2));
+
+    int size = qrcodegen_getSize(qr1);
+    ASSERT_EQ(size, qrcodegen_getSize(qr2));
+
+    size_t bytes = (size * size + 7) / 8 + 1;
+    EXPECT_NE(std::memcmp(qr1, qr2, bytes), 0) << "Different inputs should produce different QR Codes";
+}
+
+// ---------------------------------------------------------------------------
+// Structure: finder patterns
+// ---------------------------------------------------------------------------
+
+TEST_F(QRCodeTest, FinderPatternsPresent)
+{
+    ASSERT_TRUE(qrcodegen_encodeText("Horcrux Core", temp_, qrcode_));
+    int size = qrcodegen_getSize(qrcode_);
+
+    // Top-left, top-right and bottom-left finder patterns.
+    expectFinderPattern(qrcode_, size, 0, 0);
+    expectFinderPattern(qrcode_, size, size - 7, 0);
+    expectFinderPattern(qrcode_, size, 0, size - 7);
+}
+
+TEST_F(QRCodeTest, NotUniformGrid)
+{
+    ASSERT_TRUE(qrcodegen_encodeText("Not uniform test", temp_, qrcode_));
+    int size = qrcodegen_getSize(qrcode_);
+
+    // A valid QR Code is never a solid block: it must contain both dark and
+    // light modules. Count the dark modules and ensure it is neither empty
+    // nor the whole grid.
+    int darkCount = 0;
+    for (int y = 0; y < size; y++)
+    {
+        for (int x = 0; x < size; x++)
+        {
+            if (getModule(qrcode_, x, y))
+            {
+                darkCount++;
+            }
+        }
+    }
+
+    EXPECT_GT(darkCount, 0) << "QR Code should contain at least one dark module";
+    EXPECT_LT(darkCount, size * size) << "QR Code should not be entirely dark";
+}
+
+// ---------------------------------------------------------------------------
+// Error cases
+// ---------------------------------------------------------------------------
+
+TEST_F(QRCodeTest, TextTooLongFails)
+{
+    // A very long text that cannot fit in any version (1..40) at ECC LOW.
+    std::string tooLong(3000, 'x');
+    EXPECT_FALSE(qrcodegen_encodeText(tooLong.c_str(), temp_, qrcode_));
+    EXPECT_EQ(qrcode_[0], 0) << "qrcode[0] should be set to 0 (invalid size sentinel) on failure";
+}
+
+TEST_F(QRCodeTest, NullTextFails)
+{
+    EXPECT_FALSE(qrcodegen_encodeText(nullptr, temp_, qrcode_));
+}
+
+TEST_F(QRCodeTest, NullBuffersFail)
+{
+    EXPECT_FALSE(qrcodegen_encodeText("test", nullptr, qrcode_));
+    EXPECT_FALSE(qrcodegen_encodeText("test", temp_, nullptr));
+}
+
+TEST_F(QRCodeTest, GetSizeNullReturnsMinusOne)
+{
+    EXPECT_EQ(qrcodegen_getSize(nullptr), -1);
+}
+
+// ---------------------------------------------------------------------------
+// Capacity / boundary
+// ---------------------------------------------------------------------------
+
+TEST_F(QRCodeTest, NumericCapacityFits)
+{
+    // Numeric mode is the most compact; a 100-digit number should fit easily.
+    std::string digits(100, '7');
+    ASSERT_TRUE(encodeText(digits, qrcode_));
+    EXPECT_GE(qrcodegen_getSize(qrcode_), 21);
+}
+
+TEST_F(QRCodeTest, ByteCapacityBoundary)
+{
+    // Byte mode: ~2953 bytes fit in version 40 at ECC LOW. Use a value well
+    // within range but large enough to require a high version.
+    std::string text(1000, 'a');
+    ASSERT_TRUE(encodeText(text, qrcode_));
+    int size = qrcodegen_getSize(qrcode_);
+    EXPECT_GT(size, 21) << "1000 bytes should require a version larger than 1";
+}
