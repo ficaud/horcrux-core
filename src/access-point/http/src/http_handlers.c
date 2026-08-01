@@ -219,7 +219,7 @@ const char *handler_divide(const struct http_request *req)
 
             LOG_INF("Secret to encrypt: %s", msg_buf);
 
-            struct sss_share shares[SSS_N];
+            static struct sss_share shares[SSS_N];
             size_t shares_count = 0;
             if (handler_shamir_split(msg_buf, shares, &shares_count) < 0)
             {
@@ -330,7 +330,7 @@ static void url_decode(char *dst, const char *src, size_t dst_size)
 static int handler_shamir_split(const char *secret, struct sss_share *shares_out, size_t *shares_count)
 {
     int ret = -1; // error by default
-    struct sss_share shares[SSS_N]; // local buffer for shares
+    static struct sss_share shares[SSS_N]; // local buffer for shares
 
     /* --- Shamir's Secret Sharing --- */
     size_t secret_len = strlen(secret);
@@ -408,8 +408,8 @@ exit:
 
 static const char *handler_shares_json_response(const struct sss_share *shares)
 {
-    /* Stack buffer for the JSON body (large enough for SSS_N shares of max hex length) */
-    char body[SSS_N * (SSS_MAX_SECRET_LEN * 2 + 20) + 2];
+    /* Static buffer for the JSON body (large enough for SSS_N shares of max hex length) */
+    static char body[SSS_N * (SSS_MAX_SECRET_LEN * 2 + 20) + 2];
     char *p = body;
     size_t room = sizeof(body);
     int n;
