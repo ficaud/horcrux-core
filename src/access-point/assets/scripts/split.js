@@ -23,6 +23,18 @@
         document.head.appendChild(script);
     })();
 
+    /* ── QR WASM bootstrap ── */
+    var qrModule = null;
+    (function () {
+        var script = document.createElement('script');
+        script.src = 'scripts/qr.js';                // relative to HTML page
+        script.onload = function () {
+            QRWasm().then(function (m) { qrModule = m; });
+        };
+        script.onerror = function () { /* fetch fallback */ };
+        document.head.appendChild(script);
+    })();
+
     /* ── Shared helpers ── */
     var msgInput = document.getElementById('msg-input');
     var msgBtn = document.getElementById('msg-btn');
@@ -58,22 +70,40 @@
     }
 
     function downloadQR(shareText, index) {
+        /* Helper: trigger download from SVG text */
+        function saveSvg(svgText) {
+            var blob = new Blob([svgText], { type: 'image/svg+xml' });
+            var a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'share-' + (index + 1) + '-qr.svg';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(a.href);
+            showToast('QR downloaded!');
+        }
+
+        /* Try WASM QR generator first (client-side, offline-capable) */
+        if (qrModule && qrModule._wasm_qr_generate) {
+            try {
+                var svgPtr = qrModule.ccall('wasm_qr_generate', 'number', ['string'], [shareText]);
+                if (svgPtr) {
+                    var svg = qrModule.UTF8ToString(svgPtr);
+                    qrModule._wasm_qr_free(svgPtr);
+                    saveSvg(svg);
+                    return;
+                }
+            } catch (e) { /* fall through to fetch */ }
+        }
+
+        /* Fallback: server-side QR generation (embedded device) */
         var url = '/qr.svg?text=' + encodeURIComponent(shareText);
         fetch(url)
             .then(function (r) {
                 if (!r.ok) throw new Error('QR generation failed');
-                return r.blob();
+                return r.text();
             })
-            .then(function (blob) {
-                var a = document.createElement('a');
-                a.href = URL.createObjectURL(blob);
-                a.download = 'share-' + (index + 1) + '-qr.svg';
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(a.href);
-                showToast('QR downloaded!');
-            })
+            .then(function (svg) { saveSvg(svg); })
             .catch(function (err) {
                 showToast('Error: ' + err.message);
             });

@@ -49,6 +49,8 @@ jobs:
           cp src/access-point/assets/style.css      pages/
           cp demo/scripts/sss.js                    pages/scripts/
           cp demo/scripts/sss.wasm                  pages/scripts/
+          cp demo/scripts/qr.js                     pages/scripts/
+          cp demo/scripts/qr.wasm                   pages/scripts/
           cp src/access-point/assets/scripts/split.js   pages/scripts/
           cp src/access-point/assets/scripts/unsplit.js pages/scripts/
           cp src/access-point/assets/scripts/jsQR.js    pages/scripts/
