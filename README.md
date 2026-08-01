@@ -26,6 +26,22 @@ This project's firmware is compatible with the following ESP32 boards:
 4. Click **Connect & Flash**, select the serial port when prompted.
 5. Wait for the progress bar to complete — done!
 
+## How to connect to captive portal
+
+Once ESP32 is loaded with the firmware, it will create a Wi-Fi access point called `Horcrux-XXXX` with the `X` bein g the last 4 characters of the ESP32 MAC address.
+
+The access point is protected by the WPA2 password:
+```
+ubx7jrd9kje_ZRC8dqt
+```
+
+Connect to it and a captive portal will open automatically.
+
+It is recommended to use another web browser to access the captive portal:
+1. Tap on the cross icon in the top right corner of the portal to close it
+2. Select "Use access point without internet" (or similar)
+3. Open your favourite web browser and go to `http://192.168.4.1`
+
 ## Contribution
 
 In [contribution](doc/contribution.md), you'll find all the required information to build and flash the Horcrux Core ESP32 firmware.
