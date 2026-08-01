@@ -30,17 +30,30 @@ This project's firmware is compatible with the following ESP32 boards:
 
 Once ESP32 is loaded with the firmware, it will create a Wi-Fi access point called `Horcrux-XXXX` with the `X` bein g the last 4 characters of the ESP32 MAC address.
 
+Connect to it.
+
 The access point is protected by the WPA2 password:
 ```
 ubx7jrd9kje_ZRC8dqt
 ```
 
-Connect to it and a captive portal will open automatically.
-
-It is recommended to use another web browser to access the captive portal:
+Then, It is recommended to use another web browser to access the captive portal:
 1. Tap on the cross icon in the top right corner of the portal to close it
 2. Select "Use access point without internet" (or similar)
 3. Open your favourite web browser and go to `http://192.168.4.1`
+
+## SSS settings
+
+The current implementation uses GF(2^8) finite fields and the Shamir's Secret Sharing algorithm with a threshold of 3 for 5 shares generated.
+
+Maybe in the future, we will be able to set the threshold dynamically. That's not the was right now.
+
+You also have the possibility to generate QR codes with the shares (in the split page), and scan QR codes back to reconstruct the secret in the unpsplit page.
+
+<div align="center">
+<img src="doc/img/split.PNG" width="250" alt="split tab from horcrux core">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+<img src="doc/img/unsplit.PNG" width="250" alt="unsplit tab from horcrux core">
+</div>
 
 ## Contribution
 
