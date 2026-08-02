@@ -13,11 +13,31 @@
 /**
  * @brief Domain name the DNS interceptor responds to (captive portal domain).
  *
- * The DNS interceptor will only answer A-record queries for this domain,
- * returning the captive portal IP. All other queries are left unanswered
- * (dropped), so that normal DNS resolution is not intercepted.
+ * The DNS interceptor will answer A-record queries for this domain,
+ * returning the captive portal IP.
  */
 #define DNS_PORTAL_DOMAIN "horcrux.co"
+
+/**
+ * @brief Well-known captive portal detection domains.
+ *
+ * When a device connects to a Wi-Fi network, the OS (Android, iOS, macOS,
+ * Windows) checks for a captive portal by resolving one of these domains and
+ * requesting a well-known path (e.g. /generate_204, /hotspot-detect.html).
+ * Answering these with the portal IP makes the OS trigger the captive portal
+ * popup. All other queries are left unanswered (dropped) so that normal DNS
+ * resolution is not intercepted.
+ */
+#define DNS_PORTAL_DETECTION_DOMAINS                                                             \
+    "connectivitycheck.gstatic.com",                                                             \
+    "connectivitycheck.android.com",                                                             \
+    "clients3.google.com",                                                                       \
+    "captive.apple.com",                                                                         \
+    "gsp1.apple.com",                                                                            \
+    "www.msftconnecttest.com",                                                                   \
+    "ipv6.msftconnecttest.com",                                                                  \
+    "neverssl.com",                                                                              \
+    "network-test.com"
 
 // ===========================================================================
 // Public function declaration
