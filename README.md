@@ -51,7 +51,7 @@ ubx7jrd9kje_ZRC8dqt
 Then, It is recommended to use another web browser to access the captive portal:
 1. Tap on the cross icon in the top right corner of the portal to close it
 2. Select "Use access point without internet" (or similar)
-3. Open your favourite web browser and go to `http://192.168.4.1`
+3. Open your favourite web browser and go to `horcrux.co` (local horcrux DNS will serve you the portal)
 
 ## SSS settings
 
