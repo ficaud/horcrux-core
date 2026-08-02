@@ -170,9 +170,6 @@ static bool query_is_for_portal(const uint8_t *query, int query_len, char *name_
         name_out[0] = '\0';
     }
 
-    const char *domain = DNS_PORTAL_DOMAIN;
-    const int domain_len = strlen(domain);
-
     if (query_len < DNS_HEADER_LEN + 2)
     {
         goto exit;
@@ -246,8 +243,24 @@ static bool query_is_for_portal(const uint8_t *query, int query_len, char *name_
         name_out[DNS_NAME_MAX_LEN] = '\0';
     }
 
-    /* The decoded name must match the portal domain exactly */
-    ret = name_len == domain_len && strcmp(name, domain) == 0;
+    /* The decoded name must match the portal domain or one of the well-known
+     * captive portal detection domains (Android, iOS, Windows, ...). This is
+     * what triggers the OS to show the captive portal popup automatically. */
+    static const char *const allowed_domains[] = {
+        DNS_PORTAL_DOMAIN,
+        DNS_PORTAL_DETECTION_DOMAINS,
+    };
+    const size_t allowed_count = sizeof(allowed_domains) / sizeof(allowed_domains[0]);
+
+    for (size_t i = 0; i < allowed_count; i++)
+    {
+        const char *candidate = allowed_domains[i];
+        if (name_len == (int)strlen(candidate) && strcmp(name, candidate) == 0)
+        {
+            ret = true;
+            break;
+        }
+    }
 
 exit:
     return ret;
