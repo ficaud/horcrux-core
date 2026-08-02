@@ -46,6 +46,24 @@ static struct k_thread dns_thread;
 static void build_dns_response(uint8_t *buf, const uint8_t *query, int query_len);
 
 /**
+ * @brief Check whether a DNS query targets the captive portal domain.
+ *
+ * The query name (QNAME) is located right after the 12-byte header and is
+ * encoded as a sequence of length-prefixed labels terminated by a zero byte
+ * (RFC 1035 §4.1.2). This function decodes it and compares it (case
+ * insensitively) against the configured portal domain.
+ *
+ * @param query[in]     The received DNS query packet.
+ * @param query_len[in] Length of the query packet.
+ * @param name_out[out] Optional buffer (DNS_NAME_MAX_LEN + 1 bytes) that
+ *                      receives the decoded query name (e.g. "horcrux.co").
+ *                      May be NULL if the caller does not need it.
+ *
+ * @return true if the query is for the portal domain, false otherwise.
+ */
+static bool query_is_for_portal(const uint8_t *query, int query_len, char *name_out);
+
+/**
  * @brief DNS interceptor thread function.
  *
  * Listens for DNS queries on UDP port 53 and responds with the captive portal IP.
@@ -131,6 +149,110 @@ static void build_dns_response(uint8_t *buf, const uint8_t *query, int query_len
     memcpy(&buf[answer_pos], portal_ip, 4);
 }
 
+static bool query_is_for_portal(const uint8_t *query, int query_len, char *name_out)
+{
+    bool ret = false;
+    /*
+     * The QNAME starts at offset 12 (right after the 12-byte header) and is
+     * encoded as a sequence of length-prefixed labels terminated by a zero
+     * byte (RFC 1035 §4.1.2), e.g. "horcrux.co" → 0x07 h o r c r u x 0x02 c o 0x00.
+     *
+     * We decode the whole name into a human-readable buffer (e.g. "horcrux.co")
+     * and compare it case-insensitively against the configured portal domain.
+     * Only the exact domain is matched (no subdomains) so that unrelated DNS
+     * traffic is not intercepted.
+     */
+
+    /* Ensure name_out is always null-terminated, even on early-exit error paths,
+     * so the caller can safely log it. */
+    if (name_out)
+    {
+        name_out[0] = '\0';
+    }
+
+    const char *domain = DNS_PORTAL_DOMAIN;
+    const int domain_len = strlen(domain);
+
+    if (query_len < DNS_HEADER_LEN + 2)
+    {
+        goto exit;
+    }
+
+    char name[DNS_NAME_MAX_LEN + 1];
+    int name_len = 0;
+    int pos = DNS_HEADER_LEN;
+
+    while (pos < query_len)
+    {
+        // Here we ge the label length
+        uint8_t label_len = query[pos++];
+
+        /* End of name (zero-length label) */
+        if (label_len == 0)
+        {
+            break;
+        }
+
+        /* A compression pointer (0xC0) would mean the name is not self-contained;
+         * queries normally encode the full name in the question section, so we
+         * do not follow pointers here. */
+        if ((label_len & 0xC0) != 0 || label_len > 63)
+        {
+            goto exit;
+        }
+
+        /* Append a dot separator between labels */
+        // Here this means we get at the end of the X label,
+        // so we need to add a dot "Horcrux." to the name
+        if (name_len > 0)
+        {
+            if (name_len >= DNS_NAME_MAX_LEN)
+            {
+                goto exit;
+            }
+            name[name_len++] = '.';
+        }
+
+        // Iteration on the labe length
+        for (int i = 0; i < label_len; i++)
+        {
+            // Check if we are out of the buffer
+            if (pos >= query_len || name_len >= DNS_NAME_MAX_LEN)
+            {
+                goto exit;
+            }
+
+            // Get the label character
+            char c = (char)query[pos++];
+
+            /* Normalize to lowercase for case-insensitive comparison */
+            if (c >= 'A' && c <= 'Z')
+            {
+                c += 'a' - 'A';
+            }
+
+            // Add the character to the name
+            name[name_len++] = c;
+        }
+    }
+
+    // Add the null terminator
+    name[name_len] = '\0';
+
+    /* Expose the decoded name to the caller (for logging/debugging purposes) */
+    if (name_out)
+    {
+        strncpy(name_out, name, DNS_NAME_MAX_LEN);
+        name_out[DNS_NAME_MAX_LEN] = '\0';
+    }
+
+    /* The decoded name must match the portal domain exactly */
+    ret = name_len == domain_len && strcmp(name, domain) == 0;
+
+exit:
+    return ret;
+}
+
 static void dns_thread_fn(void *arg1, void *arg2, void *arg3)
 {
     int sock;
@@ -173,9 +295,22 @@ static void dns_thread_fn(void *arg1, void *arg2, void *arg3)
             continue;
         }
 
-        // only handle standard A queries (QR=0, OPCODE=0)
-        if (rx_buf[2] != 0x01 || rx_buf[3] != 0x00)
+        /* Only handle queries (QR bit = 0). A response (QR=1) is not something we
+         * should answer to. We deliberately avoid checking the RD/AD/other flag
+         * bits: real clients (phones, browsers, OS resolvers) set them in various
+         * combinations, and a strict match would silently drop legitimate queries. */
+        if ((rx_buf[2] & 0x80) != 0)
         {
+            continue;
+        }
+
+        // Only respond to queries for the captive portal domain (e.g. "horcrux.co").
+        // All other queries are dropped so that normal DNS resolution is not intercepted.
+        char qname[DNS_NAME_MAX_LEN + 1];
+        if (!query_is_for_portal(rx_buf, rx_len, qname))
+        {
+            LOG_DBG("Ignoring DNS query for \"%s\" (portal domain is \"%s\")", qname, DNS_PORTAL_DOMAIN);
+            // Drop the current iteration and continue with the next one
             continue;
         }
 
