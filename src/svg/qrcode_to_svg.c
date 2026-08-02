@@ -47,6 +47,13 @@ static int svg_begin(char *buf, size_t buf_size, int width, int height);
 // ===========================================================================
 int qrcode_to_svg(const uint8_t *qr_code, int qr_code_size, char *buf, size_t buf_size)
 {
+    /* Validate inputs: a non-null QR grid, a non-null destination buffer,
+     * a positive grid side length and a non-empty buffer. */
+    if (qr_code == NULL || buf == NULL || qr_code_size <= 0 || buf_size == 0)
+    {
+        return -1;
+    }
+
     int img_size = qr_code_size * SVG_SCALE + 2 * SVG_MARGIN;
     bool truncated = false;
     char *p = buf;
@@ -128,6 +135,11 @@ int qrcode_to_svg(const uint8_t *qr_code, int qr_code_size, char *buf, size_t bu
         if (n < 0 || (size_t)n >= room)
         {
             truncated = true;
+        }
+        else
+        {
+            p += n;
+            room -= n;
         }
     }
 
