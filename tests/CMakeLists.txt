@@ -25,6 +25,7 @@ set(SSS_RANDOMBYTES_DIR ${SSS_REF_DIR}/randombytes)
 # ---------------------------------------------------------------------------
 set(SSS_SRC_DIR    ${CMAKE_CURRENT_SOURCE_DIR}/../src/sss)
 set(QRCODE_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../src/qrcode)
+set(SVG_SRC_DIR    ${CMAKE_CURRENT_SOURCE_DIR}/../src/svg)
 
 # ---------------------------------------------------------------------------
 # sss_test — Shamir + QR Code tests (combined executable)
@@ -73,9 +74,33 @@ target_link_libraries(qrcode_test PRIVATE
 )
 
 # ---------------------------------------------------------------------------
+# svg_test — QR Code → SVG conversion tests only (standalone executable)
+# Build with: cmake --build tests/build-native --target svg_test
+# ---------------------------------------------------------------------------
+add_executable(svg_test
+    main.cpp
+    test_svg.cpp
+    ${QRCODE_SRC_DIR}/qr_encode.c             # QR Code generator
+    ${SVG_SRC_DIR}/qrcode_to_svg.c            # QR Code → SVG converter
+)
+
+target_include_directories(svg_test PRIVATE
+    ${QRCODE_SRC_DIR}                            # for qr_encode.h
+    ${SVG_SRC_DIR}                               # for qrcode_to_svg.h
+)
+
+target_link_libraries(svg_test PRIVATE
+    GTest::GTest
+    GTest::Main
+)
+
+# ---------------------------------------------------------------------------
 # Register tests with ctest
 # ---------------------------------------------------------------------------
 add_test(NAME sss_test COMMAND sss_test)
 
 # Launch the QR code unit tests (QRCodeTest suite) via the dedicated binary.
 add_test(NAME qrcode_test COMMAND qrcode_test)
+
+# Launch the SVG unit tests (SVGTest suite) via the dedicated binary.
+add_test(NAME svg_test COMMAND svg_test)
