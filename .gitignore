@@ -55,3 +55,7 @@ public.pem
 
 ### auto generated captive portal
 /src/access-point/assets/page_captive.h
+CLAUDE.md
+tests/Testing/Temporary
+/doc/commands.md
+/.cache/clangd/index
