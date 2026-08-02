@@ -76,6 +76,39 @@ if [ -n "$EFFECTIVE_USER" ]; then
             ln -s "$SOURCE_GITCONFIG" "$TARGET_GITCONFIG" 2>/dev/null || true
         fi
     fi
+
+    # ---- Bridge .zshrc for effective user ------------------------------
+    # devcontainer.json mounts host .zshrc (readonly) at
+    # /home/$USERNAME/.zshrc.  Link it into the effective user's HOME so
+    # zsh picks up the MacBook shell configuration.
+    SOURCE_ZSHRC="/home/$USERNAME/.zshrc"
+    TARGET_ZSHRC="$EFFECTIVE_HOME/.zshrc"
+
+    if [ -f "$SOURCE_ZSHRC" ] || [ -L "$SOURCE_ZSHRC" ]; then
+        if [ ! -e "$TARGET_ZSHRC" ] && [ ! -L "$TARGET_ZSHRC" ]; then
+            ln -s "$SOURCE_ZSHRC" "$TARGET_ZSHRC" 2>/dev/null || true
+        fi
+    fi
+
+    # ---- Bridge Oh My Zsh for effective user ---------------------------
+    # The mounted .zshrc sets ZSH="$HOME/.oh-my-zsh".  The framework and
+    # its plugins are installed in the image under /home/$USERNAME; link
+    # them into the effective user's HOME so the shell loads correctly.
+    SOURCE_OMZ="/home/$USERNAME/.oh-my-zsh"
+    TARGET_OMZ="$EFFECTIVE_HOME/.oh-my-zsh"
+
+    if [ -d "$SOURCE_OMZ" ] || [ -L "$SOURCE_OMZ" ]; then
+        if [ ! -e "$TARGET_OMZ" ] && [ ! -L "$TARGET_OMZ" ]; then
+            ln -s "$SOURCE_OMZ" "$TARGET_OMZ" 2>/dev/null || true
+        fi
+    fi
+
+    # ---- Make zsh the default shell for the effective user ------------
+    # If the effective user's login shell is not zsh, switch it so that
+    # new shells (and `sudo -u` interactive sessions) start in zsh.
+    if [ -x /usr/bin/zsh ] && [ "$(getent passwd "$EFFECTIVE_USER" | cut -d: -f7)" != "/usr/bin/zsh" ]; then
+        chsh -s /usr/bin/zsh "$EFFECTIVE_USER" 2>/dev/null || true
+    fi
 fi
 
 # Always ensure $USERNAME has passwordless sudo, even if an earlier

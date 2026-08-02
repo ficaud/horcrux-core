@@ -54,6 +54,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libgtest-dev \
     libgmock-dev \
     ripgrep \
+    zsh \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -231,6 +232,58 @@ RUN mkdir -p /home/${USERNAME}/.config \
          echo "WARNING: LazyVim clone failed; continuing without it"; \
        fi \
     && chown -R ${USERNAME}:${USER_GID} /home/${USERNAME}/.config
+
+# ------------------------------------------------------------------
+# 8. Oh My Zsh + plugins (used by the host .zshrc mounted from the MacBook)
+# ------------------------------------------------------------------
+# The mounted .zshrc points ZSH="$HOME/.oh-my-zsh" and loads the plugins
+# git, zsh-autosuggestions and zsh-syntax-highlighting.  We install those
+# here (into /home/${USERNAME}) so the container is self-contained; the
+# entrypoint bridges them to the effective runtime user.
+# Oh My Zsh itself is CRITICAL: without oh-my-zsh.sh the mounted .zshrc
+# fails to source and zsh is unusable.  Clone it with retries and abort the
+# build if it never succeeds (a transient GitHub failure must not silently
+# produce a broken shell).
+# Clone into a temporary dir and move into place so the target never
+# pre-exists (git refuses to clone into a non-empty directory).
+RUN clone_ohmyzsh() { \
+         for i in 1 2 3 4 5; do \
+           rm -rf /tmp/oh-my-zsh; \
+           if git clone --depth 1 https://github.com/ohmyzsh/ohmyzsh.git /tmp/oh-my-zsh; then \
+             return 0; \
+           fi; \
+           echo "Oh My Zsh clone attempt ${i} failed; retrying in 5s..."; \
+           sleep 5; \
+         done; \
+         return 1; \
+       }; \
+       if clone_ohmyzsh; then \
+         rm -rf /home/${USERNAME}/.oh-my-zsh \
+         && mv /tmp/oh-my-zsh /home/${USERNAME}/.oh-my-zsh \
+         && rm -rf /home/${USERNAME}/.oh-my-zsh/.git \
+         && echo "Oh My Zsh installed"; \
+       else \
+         echo "ERROR: Oh My Zsh clone failed after retries" >&2; \
+         exit 1; \
+       fi \
+    && test -f /home/${USERNAME}/.oh-my-zsh/oh-my-zsh.sh \
+    && mkdir -p /home/${USERNAME}/.oh-my-zsh/custom/plugins \
+    && if git clone --depth 1 https://github.com/zsh-users/zsh-autosuggestions /home/${USERNAME}/.oh-my-zsh/custom/plugins/zsh-autosuggestions; then \
+         echo "zsh-autosuggestions installed"; \
+       else \
+         echo "WARNING: zsh-autosuggestions clone failed; continuing without it"; \
+       fi \
+    && if git clone --depth 1 https://github.com/zsh-users/zsh-syntax-highlighting /home/${USERNAME}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting; then \
+         echo "zsh-syntax-highlighting installed"; \
+       else \
+         echo "WARNING: zsh-syntax-highlighting clone failed; continuing without it"; \
+       fi \
+    && chown -R ${USERNAME}:${USER_GID} /home/${USERNAME}/.oh-my-zsh
+
+# ------------------------------------------------------------------
+# 9. Make zsh the default shell for the container user
+# ------------------------------------------------------------------
+RUN chsh -s /usr/bin/zsh ${USERNAME}
 
 # Entrypoint — adjusts UID/GID at runtime for volume-mounted workspaces.
 # Must run as root so it can call usermod/groupmod/chown, then

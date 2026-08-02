@@ -41,7 +41,7 @@
   },
   "mounts": [
     "source=${localEnv:HOME}/.config/nvim,target=/home/vscode/.config/nvim,type=bind,consistency=cached",
-    "source=${localEnv:HOME}/.gitconfig,target=/home/vscode/.gitconfig,type=bind,consistency=cached"
+    "source=${localEnv:HOME}/.gitconfig,target=/home/vscode/.gitconfig,type=bind,consistency=cached",
     "source=${localEnv:HOME}/.zshrc,target=/home/vscode/.zshrc,type=bind,readonly"
   ],
   "postCreateCommand": "sudo -n chown -R \"$(whoami):$(id -g)\" /workspaces/horcrux /opt/zephyr-sdk 2>/dev/null || true; cd /workspaces/horcrux && if [ -d .west ]; then west update; else mkdir -p .west && printf '[manifest]\\npath = .\\nfile = west.yml\\n\\n[zephyr]\\nbase = zephyr\\n' > .west/config && env -u ZEPHYR_BASE west update; fi && bash tools/download-blobs.sh",
