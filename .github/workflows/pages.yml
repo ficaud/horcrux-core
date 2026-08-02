@@ -47,6 +47,7 @@ jobs:
           cp src/access-point/assets/unsplit.html   pages/
           cp demo/flash.html                        pages/
           cp src/access-point/assets/style.css      pages/
+          cp doc/img/horcrux-logo_icone.svg         pages/favicon.svg
           cp demo/scripts/sss.js                    pages/scripts/
           cp demo/scripts/sss.wasm                  pages/scripts/
           cp demo/scripts/qr.js                     pages/scripts/
