@@ -138,32 +138,55 @@ RUN ARCH="$(uname -m)" \
     && echo "SDK installed successfully (${TOOLCHAIN_ESP32S3} and ${TOOLCHAIN_ESP32} verified)"
 
 # ------------------------------------------------------------------
-# 4. Neovim and Lazygit
+# 4. Neovim and Lazygit (optional developer tools)
 # ------------------------------------------------------------------
+# These downloads are developer conveniences, not required to build or
+# test the firmware. A transient GitHub download failure must NOT abort
+# the CI docker build, so each tool is installed in an isolated step that
+# tolerates failure (logs a warning and continues).
 ENV NVIM_VERSION=0.11.2
 ENV LAZYGIT_VERSION=0.45.2
 
+# Map the build architecture to the GitHub release asset suffix.
 RUN ARCH="$(uname -m)" \
     && case "${ARCH}" in \
         x86_64) N_ARCH="x86_64" ;; \
         aarch64|arm64) N_ARCH="arm64" ;; \
         *) echo "Unsupported architecture: ${ARCH}" && exit 1 ;; \
     esac \
-    # 4a. Neovim
+    && echo "${N_ARCH}" > /tmp/n_arch.txt
+
+# 4a. Neovim (best-effort; failure is non-fatal for CI)
+RUN N_ARCH="$(cat /tmp/n_arch.txt)" \
     && NVIM_URL="https://github.com/neovim/neovim/releases/download/v${NVIM_VERSION}/nvim-linux-${N_ARCH}.tar.gz" \
     && echo "Downloading Neovim ${NVIM_VERSION} for ${N_ARCH}..." \
-    && wget -q --show-progress --tries=5 --timeout=120 -O /tmp/nvim.tar.gz "${NVIM_URL}" \
-    && tar -xzf /tmp/nvim.tar.gz -C /opt/ \
-    && ln -sf /opt/nvim-linux-${N_ARCH}/bin/nvim /usr/local/bin/nvim \
-    && rm /tmp/nvim.tar.gz \
-    # 4b. Lazygit
+    && if wget -q --show-progress --tries=3 --timeout=60 -O /tmp/nvim.tar.gz "${NVIM_URL}"; then \
+         tar -xzf /tmp/nvim.tar.gz -C /opt/ \
+         && ln -sf /opt/nvim-linux-${N_ARCH}/bin/nvim /usr/local/bin/nvim \
+         && rm /tmp/nvim.tar.gz \
+         && nvim --version | head -1 \
+         && echo "Neovim installed" \
+         ; \
+       else \
+         echo "WARNING: Neovim download failed; continuing without it" \
+         ; \
+       fi
+
+# 4b. Lazygit (best-effort; failure is non-fatal for CI)
+RUN N_ARCH="$(cat /tmp/n_arch.txt)" \
     && LAZYGIT_URL="https://github.com/jesseduffield/lazygit/releases/download/v${LAZYGIT_VERSION}/lazygit_${LAZYGIT_VERSION}_Linux_${N_ARCH}.tar.gz" \
     && echo "Downloading Lazygit ${LAZYGIT_VERSION} for ${N_ARCH}..." \
-    && wget -q --show-progress --tries=5 --timeout=120 -O /tmp/lazygit.tar.gz "${LAZYGIT_URL}" \
-    && tar -xzf /tmp/lazygit.tar.gz -C /usr/local/bin/ lazygit \
-    && rm /tmp/lazygit.tar.gz \
-    && nvim --version | head -1 \
-    && lazygit --version
+    && if wget -q --show-progress --tries=3 --timeout=60 -O /tmp/lazygit.tar.gz "${LAZYGIT_URL}"; then \
+         tar -xzf /tmp/lazygit.tar.gz -C /usr/local/bin/ lazygit \
+         && rm /tmp/lazygit.tar.gz \
+         && lazygit --version \
+         && echo "Lazygit installed" \
+         ; \
+       else \
+         echo "WARNING: Lazygit download failed; continuing without it" \
+         ; \
+       fi \
+    && rm -f /tmp/n_arch.txt
 
 # ------------------------------------------------------------------
 # 5. Environment setup
@@ -197,13 +220,17 @@ RUN groupadd --gid "${USER_GID}" "${USERNAME}" 2>/dev/null || true; \
     chmod 0440 /etc/sudoers.d/sudogroup-nopasswd
 
 # ------------------------------------------------------------------
-# 7. LazyVim (Neovim configuration)
+# 7. LazyVim (Neovim configuration) — optional developer tooling
 # ------------------------------------------------------------------
+# Best-effort clone; a transient GitHub failure must not abort the CI build.
 RUN mkdir -p /home/${USERNAME}/.config \
-    && git clone --depth 1 https://github.com/LazyVim/starter /home/${USERNAME}/.config/nvim \
-    && rm -rf /home/${USERNAME}/.config/nvim/.git \
-    && chown -R ${USERNAME}:${USER_GID} /home/${USERNAME}/.config \
-    && echo "LazyVim installed"
+    && if git clone --depth 1 https://github.com/LazyVim/starter /home/${USERNAME}/.config/nvim; then \
+         rm -rf /home/${USERNAME}/.config/nvim/.git \
+         && echo "LazyVim installed"; \
+       else \
+         echo "WARNING: LazyVim clone failed; continuing without it"; \
+       fi \
+    && chown -R ${USERNAME}:${USER_GID} /home/${USERNAME}/.config
 
 # Entrypoint — adjusts UID/GID at runtime for volume-mounted workspaces.
 # Must run as root so it can call usermod/groupmod/chown, then
