@@ -23,6 +23,5 @@ int main(void)
     // HTTP server start
     http_server_start();
 
-    LOG_INF("Captive portal started. QR code: http://<device-ip>/qr.svg");
     return 0;
 }
