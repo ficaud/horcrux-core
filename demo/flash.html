@@ -60,6 +60,19 @@
             <div id="progress-text" style="font-size:11px;opacity:0.7;margin-top:4px"></div>
         </div>
 
+        <!-- Wi-Fi QR code (shown after flashing) -->
+        <div id="wifi-qr-wrapper" style="display:none;margin-bottom:12px;text-align:center">
+            <div style="font-size:13px;opacity:0.9;margin-bottom:6px">
+                Connect to the Horcrux access point
+            </div>
+            <div id="wifi-qr" style="background:#fff;border-radius:8px;padding:8px;display:inline-block"></div>
+            <div id="wifi-ssid" style="font-size:12px;margin-top:6px;opacity:0.95;word-break:break-all"></div>
+            <button id="download-qr-btn" class="btn"
+                style="font-size:12px;padding:8px 16px;width:auto;border:none;text-align:center;background:rgba(255,255,255,0.25);color:#fff;margin-top:10px;display:none">
+                &#x2B07; Download QR (SVG)
+            </button>
+        </div>
+
         <!-- Actions -->
         <button id="connect-btn" class="btn"
             style="font-size:14px;padding:12px;width:100%;border:none;text-align:center">
@@ -75,6 +88,8 @@
     <script type="module">
         // ---- esptool-js CDN ----
         import { ESPLoader, Transport } from 'https://cdn.jsdelivr.net/npm/esptool-js@0.6.0/bundle.js';
+        // ---- QR code generator CDN (for the Wi-Fi QR code shown after flashing) ----
+        import qrcode from 'https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/+esm';
 
         // ---- Board configs ----
         const BOARDS = {
@@ -104,6 +119,10 @@
         const progressWrapper = document.getElementById('progress-wrapper');
         const progressBar = document.getElementById('progress-bar');
         const progressText = document.getElementById('progress-text');
+        const wifiQrWrapper = document.getElementById('wifi-qr-wrapper');
+        const wifiQrEl = document.getElementById('wifi-qr');
+        const wifiSsidEl = document.getElementById('wifi-ssid');
+        const downloadQrBtn = document.getElementById('download-qr-btn');
 
         let port = null;
         let transport = null;
@@ -242,6 +261,76 @@
             setProgress(pct, `Writing firmware... ${pct}% (${(written / 1024).toFixed(0)} / ${(total / 1024).toFixed(0)} KB)`);
         }
 
+        // ---- Wi-Fi QR code helper ----
+        // Builds a standard "WIFI:" QR payload from the chip MAC and displays it.
+        // The SSID must match what the freshly-flashed firmware broadcasts
+        // (see wifi_mgr.c): "Horcrux-" + the last 2 bytes of the MAC formatted
+        // as 4 uppercase hex digits (addr[4] and addr[5]).
+        const WIFI_PSK = 'ubx7jrd9kje_ZRC8dqt';
+
+        // Holds the SVG string of the last generated QR so it can be downloaded.
+        let lastQrSvg = null;
+
+        function buildSsidFromMac(mac) {
+            // readMac() returns a colon-separated string like "AA:BB:CC:DD:EE:FF"
+            const parts = mac.split(':');
+            if (parts.length < 6) {
+                return null;
+            }
+            // The device uses bytes addr[4] and addr[5] (the last two).
+            return `Horcrux-${parts[4].toUpperCase()}${parts[5].toUpperCase()}`;
+        }
+
+        function showWifiQr(mac) {
+            const ssid = buildSsidFromMac(mac);
+            if (!ssid) {
+                log(`Could not build SSID from MAC "${mac}"`, true);
+                return;
+            }
+
+            // Standard Wi-Fi QR payload (RFC-like convention used by iOS/Android):
+            // WIFI:T:WPA;S:<ssid>;P:<password>;;
+            const wifiString = `WIFI:T:WPA;S:${ssid};P:${WIFI_PSK};;`;
+
+            try {
+                const qr = qrcode(0, 'M'); // type 0 = auto-size, ECC level M
+                qr.addData(wifiString);
+                qr.make();
+                const svg = qr.createSvgTag(4, 4);
+
+                wifiQrEl.innerHTML = svg;
+                wifiSsidEl.textContent = `SSID: ${ssid}`;
+                wifiQrWrapper.style.display = 'block';
+                lastQrSvg = svg;
+                downloadQrBtn.style.display = 'inline-block';
+                log(`Wi-Fi QR generated for ${ssid}`);
+            } catch (err) {
+                log(`Could not generate Wi-Fi QR: ${err.message}`, true);
+            }
+        }
+
+        // Download the generated Wi-Fi QR code as an SVG file.
+        function downloadQrSvg() {
+            if (!lastQrSvg) {
+                log('No QR code to download yet.', true);
+                return;
+            }
+            try {
+                const blob = new Blob([lastQrSvg], { type: 'image/svg+xml' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `horcrux-wifi-${Date.now()}.svg`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                log('QR code downloaded (SVG).');
+            } catch (err) {
+                log(`Download failed: ${err.message}`, true);
+            }
+        }
+
         async function flashFirmware() {
             const board = boardSelect.value;
             const cfg = BOARDS[board];
@@ -303,6 +392,25 @@
 
                 setProgress(100, 'Flash complete!');
                 log('Firmware flashed successfully!');
+
+                // Read the chip MAC address (must happen before reset, while
+                // the serial connection is still alive)
+                let mac = null;
+                try {
+                    mac = await loader.chip.readMac(loader);
+                    log(`MAC address: ${mac}`);
+                } catch (macErr) {
+                    log(`Could not read MAC: ${macErr.message}`, true);
+                }
+
+                // Generate a Wi-Fi QR code from the chip MAC so the user can
+                // connect to the freshly-flashed access point by scanning it.
+                // The SSID follows the same construction as the firmware's
+                // wifi_mgr.c: "Horcrux-" + the last 4 hex digits of the MAC
+                // (bytes addr[4] and addr[5], uppercase).
+                if (mac) {
+                    showWifiQr(mac);
+                }
 
                 // Hard reset
                 await loader.after('hard_reset');
@@ -382,6 +490,9 @@
 
         // ---- Erase button ----
         eraseBtn.addEventListener('click', eraseFlash);
+
+        // ---- Download QR button ----
+        downloadQrBtn.addEventListener('click', downloadQrSvg);
 
         // ---- File input ----
         fileInput.addEventListener('change', async (e) => {
