@@ -21,12 +21,13 @@ Horcrux Core is a firmware for ESP32 boards that implements Shamir's Secret Shar
 
 See the [demo](https://ficaud.github.io/horcrux-core/) in a WASM type web page hosted by github to see how it works.
 
+See the [Horcrux-hw](https://github.com/ficaud/horcrux-hw) to learn more about the general concepts of Horcrux and how to build it yourself in full autonomous.
+
 ## Boards compatibility
 
 This project's firmware is compatible with the following ESP32 boards:
 * [ESP32-S3-DevKitC-1](https://docs.zephyrproject.org/latest/boards/espressif/esp32s3_devkitc/doc/index.html)
 * [ESP32-DevKit-V1](https://docs.zephyrproject.org/latest/boards/others/doit_esp32_devkit_v1/doc/index.html)
-
 
 ## How to flash the firmware
 
@@ -39,19 +40,24 @@ This project's firmware is compatible with the following ESP32 boards:
 
 ## How to connect to captive portal
 
-Once ESP32 is loaded with the firmware, it will create a Wi-Fi access point called `Horcrux-XXXX` with the `X` bein g the last 4 characters of the ESP32 MAC address.
+Once the ESP32 is loaded with the firmware, it will create a Wi-Fi access point named `Horcrux-XXXX`, where `XXXX` is the first 4 characters of the ESP32 MAC address.
 
-Connect to it.
+You can then join the network in one of two ways:
 
-The access point is protected by the WPA2 password:
+1. **Scan the QR code** shown after flashing the firmware to join the network automatically (note that you must reboot the device before doing so).
+
+<div align="center">
+<img src="doc/img/success_flashing.PNG" width="380" alt="success flashing page from horcrux">
+<br>
+<br>
+<br>
+</div>
+
+2. **Manually connect** by searching for the SSID `Horcrux-XXXX` on your router and connecting with the following password:
+
 ```
 ubx7jrd9kje_ZRC8dqt
 ```
-
-Then, It is recommended to use another web browser to access the captive portal:
-1. Tap on the cross icon in the top right corner of the portal to close it
-2. Select "Use access point without internet" (or similar)
-3. Open your favourite web browser and go to `horcrux.co` (local horcrux DNS will serve you the portal)
 
 ## SSS settings
 
