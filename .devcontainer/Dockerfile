@@ -139,7 +139,23 @@ RUN ARCH="$(uname -m)" \
     && echo "SDK installed successfully (${TOOLCHAIN_ESP32S3} and ${TOOLCHAIN_ESP32} verified)"
 
 # ------------------------------------------------------------------
-# 4. Neovim and Lazygit (optional developer tools)
+# 4. Zephyr RTOS (v4.4.2)
+# ------------------------------------------------------------------
+# Pre-downloads the Zephyr RTOS source at version v4.4.2 into the image so
+# the framework is available at build time.  The west manifest (west.yml)
+# pins the same revision, keeping the workspace consistent.
+ENV ZEPHYR_VERSION=v4.4.2
+ENV ZEPHYR_BASE=/opt/zephyr
+
+RUN echo "Cloning Zephyr RTOS ${ZEPHYR_VERSION}..." \
+    && git clone --depth 1 --branch "${ZEPHYR_VERSION}" \
+       https://github.com/zephyrproject-rtos/zephyr /opt/zephyr \
+    && rm -rf /opt/zephyr/.git \
+    && test -f /opt/zephyr/CMakeLists.txt \
+    && echo "Zephyr RTOS ${ZEPHYR_VERSION} installed"
+
+# ------------------------------------------------------------------
+# 5. Neovim and Lazygit (optional developer tools)
 # ------------------------------------------------------------------
 # These downloads are developer conveniences, not required to build or
 # test the firmware. A transient GitHub download failure must NOT abort
@@ -157,7 +173,7 @@ RUN ARCH="$(uname -m)" \
     esac \
     && echo "${N_ARCH}" > /tmp/n_arch.txt
 
-# 4a. Neovim (best-effort; failure is non-fatal for CI)
+# 5a. Neovim (best-effort; failure is non-fatal for CI)
 RUN N_ARCH="$(cat /tmp/n_arch.txt)" \
     && NVIM_URL="https://github.com/neovim/neovim/releases/download/v${NVIM_VERSION}/nvim-linux-${N_ARCH}.tar.gz" \
     && echo "Downloading Neovim ${NVIM_VERSION} for ${N_ARCH}..." \
@@ -173,7 +189,7 @@ RUN N_ARCH="$(cat /tmp/n_arch.txt)" \
          ; \
        fi
 
-# 4b. Lazygit (best-effort; failure is non-fatal for CI)
+# 5b. Lazygit (best-effort; failure is non-fatal for CI)
 RUN N_ARCH="$(cat /tmp/n_arch.txt)" \
     && LAZYGIT_URL="https://github.com/jesseduffield/lazygit/releases/download/v${LAZYGIT_VERSION}/lazygit_${LAZYGIT_VERSION}_Linux_${N_ARCH}.tar.gz" \
     && echo "Downloading Lazygit ${LAZYGIT_VERSION} for ${N_ARCH}..." \
@@ -190,13 +206,14 @@ RUN N_ARCH="$(cat /tmp/n_arch.txt)" \
     && rm -f /tmp/n_arch.txt
 
 # ------------------------------------------------------------------
-# 5. Environment setup
+# 6. Environment setup
 # ------------------------------------------------------------------
 ENV ZEPHYR_TOOLCHAIN_VARIANT=zephyr
-ENV ZEPHYR_BASE=/workspaces/horcrux/zephyr
+# Zephyr RTOS was pre-downloaded into the image at /opt/zephyr (v4.4.2).
+ENV ZEPHYR_BASE=/opt/zephyr
 
 # ------------------------------------------------------------------
-# 6. Non-root user
+# 7. Non-root user
 # ------------------------------------------------------------------
 ARG USERNAME=vscode
 ARG USER_UID=1000
@@ -221,7 +238,7 @@ RUN groupadd --gid "${USER_GID}" "${USERNAME}" 2>/dev/null || true; \
     chmod 0440 /etc/sudoers.d/sudogroup-nopasswd
 
 # ------------------------------------------------------------------
-# 7. LazyVim (Neovim configuration) — optional developer tooling
+# 8. LazyVim (Neovim configuration) — optional developer tooling
 # ------------------------------------------------------------------
 # Best-effort clone; a transient GitHub failure must not abort the CI build.
 RUN mkdir -p /home/${USERNAME}/.config \
@@ -234,7 +251,7 @@ RUN mkdir -p /home/${USERNAME}/.config \
     && chown -R ${USERNAME}:${USER_GID} /home/${USERNAME}/.config
 
 # ------------------------------------------------------------------
-# 8. Oh My Zsh + plugins (used by the host .zshrc mounted from the MacBook)
+# 9. Oh My Zsh + plugins (used by the host .zshrc mounted from the MacBook)
 # ------------------------------------------------------------------
 # The mounted .zshrc points ZSH="$HOME/.oh-my-zsh" and loads the plugins
 # git, zsh-autosuggestions and zsh-syntax-highlighting.  We install those
@@ -281,7 +298,7 @@ RUN clone_ohmyzsh() { \
     && chown -R ${USERNAME}:${USER_GID} /home/${USERNAME}/.oh-my-zsh
 
 # ------------------------------------------------------------------
-# 9. Make zsh the default shell for the container user
+# 10. Make zsh the default shell for the container user
 # ------------------------------------------------------------------
 RUN chsh -s /usr/bin/zsh ${USERNAME}
 
