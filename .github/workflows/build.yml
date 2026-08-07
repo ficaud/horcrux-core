@@ -107,8 +107,9 @@ jobs:
           docker run --rm \
             -v ${{ github.workspace }}:/workspaces/horcrux \
             -w /workspaces/horcrux \
+            -e XDG_CACHE_HOME=/workspaces/horcrux/build/.cache \
             zephyr-dev:latest \
-            west build -b ${{ matrix.target.board }} -p always -d build .
+            bash -c 'mkdir -p /workspaces/horcrux/build/.cache && west build -b ${{ matrix.target.board }} -p always -d build .'
 
       - name: Rename firmware binary
         run: |
