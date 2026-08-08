@@ -1,16 +1,17 @@
 <div align="center">
 
-# Horcrux Core
-
 <img src="doc/img/horcrux-logo.png" width="150" alt="Horcrux Core logo">
 
 <br/>
 <br/>
 <br/>
 
+# Horcrux Core
+
 [![Zephyr](https://img.shields.io/badge/zephyr-v4.4.2-4B32C3?logo=zephyr)](https://www.zephyrproject.org/)
 [![Build](https://github.com/ficaud/horcrux-core/actions/workflows/build.yml/badge.svg)](https://github.com/ficaud/horcrux-core/actions/workflows/build.yml)
 [![Demo](https://img.shields.io/badge/demo-online-764ba2)](https://ficaud.github.io/horcrux-core/)
+[![Docs](https://img.shields.io/badge/docs-online-454545)](https://ficaud.github.io/horcrux-hw/)
 
 </br>
 </div>
@@ -21,7 +22,7 @@ Horcrux Core is a firmware for ESP32 boards that implements Shamir's Secret Shar
 
 See the [demo](https://ficaud.github.io/horcrux-core/) in a WASM type web page hosted by github to see how it works.
 
-See the [Horcrux-hw](https://github.com/ficaud/horcrux-hw) to learn more about the general concepts of Horcrux and how to build it yourself in full autonomous.
+See the [full doc](https://ficaud.github.io/horcrux-hw/) to learn more about the general concepts of Horcrux and how to build it yourself in full autonomous.
 
 ## Boards compatibility
 
