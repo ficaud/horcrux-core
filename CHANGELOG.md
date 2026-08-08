@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.3] - 2026-08-08
+
+### Added
+- `flash.html`: Added qrcode generation to make it easier to join the horcrux network after flashing the esp32 device ([#33](https://github.com/ficaud/horcrux-core/issues/33))
+
+### Fixed
+- `index.html`: Replace the index page link with the domain name one (Horcrux.co)
+- `build.yml/release.yml`: Refresh cache before building the firmware to avoid errors when updating zephyr.
+
+### Changed
+- `Zephyr`: update to version 4.4.2 + fix for future updates
+
 ## [1.2.2] - 2026-08-02
 
 ### Fixed
