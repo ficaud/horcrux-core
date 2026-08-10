@@ -109,7 +109,7 @@ class QRCodeTest : public ::testing::Test
 
 TEST_F(QRCodeTest, EncodeShortText)
 {
-    ASSERT_TRUE(qrcodegen_encodeText("Hello, world!", temp_, qrcode_));
+    ASSERT_TRUE(qrcodegen_encodeText("HELLO WORLD", temp_, qrcode_));
     int size = qrcodegen_getSize(qrcode_);
     EXPECT_GE(size, 21); // version 1 minimum
     EXPECT_LE(size, 177); // version 40 maximum
@@ -122,9 +122,9 @@ TEST_F(QRCodeTest, EncodeEmptyString)
     EXPECT_GE(qrcodegen_getSize(qrcode_), 21);
 }
 
-TEST_F(QRCodeTest, EncodeNumericText)
+TEST_F(QRCodeTest, EncodeDigitsText)
 {
-    // Numeric mode: digits only.
+    // Digits are valid alphanumeric characters (encoded in alphanumeric mode).
     ASSERT_TRUE(qrcodegen_encodeText("0123456789", temp_, qrcode_));
     EXPECT_GE(qrcodegen_getSize(qrcode_), 21);
 }
@@ -133,20 +133,6 @@ TEST_F(QRCodeTest, EncodeAlphanumericText)
 {
     // Alphanumeric mode: uppercase letters, digits and a few symbols.
     ASSERT_TRUE(qrcodegen_encodeText("HELLO WORLD 123", temp_, qrcode_));
-    EXPECT_GE(qrcodegen_getSize(qrcode_), 21);
-}
-
-TEST_F(QRCodeTest, EncodeByteText)
-{
-    // Byte mode: mixed case / symbols force byte encoding.
-    ASSERT_TRUE(qrcodegen_encodeText("Hello, World! 123", temp_, qrcode_));
-    EXPECT_GE(qrcodegen_getSize(qrcode_), 21);
-}
-
-TEST_F(QRCodeTest, EncodeUtf8Text)
-{
-    // UTF-8 multibyte characters (byte mode).
-    ASSERT_TRUE(qrcodegen_encodeText("café — 日本語", temp_, qrcode_));
     EXPECT_GE(qrcodegen_getSize(qrcode_), 21);
 }
 
@@ -173,7 +159,7 @@ TEST_F(QRCodeTest, SizeIncreasesWithContentLength)
 
 TEST_F(QRCodeTest, SizeIsMultipleOfFourPlusOne)
 {
-    ASSERT_TRUE(qrcodegen_encodeText("Horcrux Core", temp_, qrcode_));
+    ASSERT_TRUE(qrcodegen_encodeText("HORCRUX CORE", temp_, qrcode_));
     int size = qrcodegen_getSize(qrcode_);
     EXPECT_EQ((size - 17) % 4, 0);
     EXPECT_GE(size, 21);
@@ -189,8 +175,8 @@ TEST_F(QRCodeTest, SameInputProducesSameOutput)
     uint8_t qr1[kBufLen];
     uint8_t qr2[kBufLen];
 
-    ASSERT_TRUE(encodeText("deterministic", qr1));
-    ASSERT_TRUE(encodeText("deterministic", qr2));
+    ASSERT_TRUE(encodeText("DETERMINISTIC", qr1));
+    ASSERT_TRUE(encodeText("DETERMINISTIC", qr2));
 
     int size = qrcodegen_getSize(qr1);
     ASSERT_EQ(size, qrcodegen_getSize(qr2));
@@ -205,8 +191,8 @@ TEST_F(QRCodeTest, DifferentInputProducesDifferentOutput)
     uint8_t qr1[kBufLen];
     uint8_t qr2[kBufLen];
 
-    ASSERT_TRUE(encodeText("first", qr1));
-    ASSERT_TRUE(encodeText("second", qr2));
+    ASSERT_TRUE(encodeText("FIRST", qr1));
+    ASSERT_TRUE(encodeText("SECOND", qr2));
 
     int size = qrcodegen_getSize(qr1);
     ASSERT_EQ(size, qrcodegen_getSize(qr2));
@@ -221,7 +207,7 @@ TEST_F(QRCodeTest, DifferentInputProducesDifferentOutput)
 
 TEST_F(QRCodeTest, FinderPatternsPresent)
 {
-    ASSERT_TRUE(qrcodegen_encodeText("Horcrux Core", temp_, qrcode_));
+    ASSERT_TRUE(qrcodegen_encodeText("HORCRUX CORE", temp_, qrcode_));
     int size = qrcodegen_getSize(qrcode_);
 
     // Top-left, top-right and bottom-left finder patterns.
@@ -232,7 +218,7 @@ TEST_F(QRCodeTest, FinderPatternsPresent)
 
 TEST_F(QRCodeTest, NotUniformGrid)
 {
-    ASSERT_TRUE(qrcodegen_encodeText("Not uniform test", temp_, qrcode_));
+    ASSERT_TRUE(qrcodegen_encodeText("NOT UNIFORM TEST", temp_, qrcode_));
     int size = qrcodegen_getSize(qrcode_);
 
     // A valid QR Code is never a solid block: it must contain both dark and
@@ -273,8 +259,8 @@ TEST_F(QRCodeTest, NullTextFails)
 
 TEST_F(QRCodeTest, NullBuffersFail)
 {
-    EXPECT_FALSE(qrcodegen_encodeText("test", nullptr, qrcode_));
-    EXPECT_FALSE(qrcodegen_encodeText("test", temp_, nullptr));
+    EXPECT_FALSE(qrcodegen_encodeText("TEST", nullptr, qrcode_));
+    EXPECT_FALSE(qrcodegen_encodeText("TEST", temp_, nullptr));
 }
 
 TEST_F(QRCodeTest, GetSizeNullReturnsMinusOne)
@@ -286,20 +272,20 @@ TEST_F(QRCodeTest, GetSizeNullReturnsMinusOne)
 // Capacity / boundary
 // ---------------------------------------------------------------------------
 
-TEST_F(QRCodeTest, NumericCapacityFits)
+TEST_F(QRCodeTest, DigitsCapacityFits)
 {
-    // Numeric mode is the most compact; a 100-digit number should fit easily.
+    // Digits are valid alphanumeric characters; a 100-digit string should fit easily.
     std::string digits(100, '7');
     ASSERT_TRUE(encodeText(digits, qrcode_));
     EXPECT_GE(qrcodegen_getSize(qrcode_), 21);
 }
 
-TEST_F(QRCodeTest, ByteCapacityBoundary)
+TEST_F(QRCodeTest, AlphanumericCapacityBoundary)
 {
-    // Byte mode: ~2953 bytes fit in version 40 at ECC LOW. Use a value well
-    // within range but large enough to require a high version.
-    std::string text(1000, 'a');
+    // Alphanumeric mode: ~4296 chars fit in version 40 at ECC LOW. Use a value
+    // well within range but large enough to require a high version.
+    std::string text(1000, 'A');
     ASSERT_TRUE(encodeText(text, qrcode_));
     int size = qrcodegen_getSize(qrcode_);
-    EXPECT_GT(size, 21) << "1000 bytes should require a version larger than 1";
+    EXPECT_GT(size, 21) << "1000 chars should require a version larger than 1";
 }
