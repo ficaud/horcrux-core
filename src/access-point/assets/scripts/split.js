@@ -175,7 +175,7 @@
         var data = '';
         for (var i = 0; i < len; i++) {
             var b = Module.getValue(dataPtr + i, 'i8') & 0xFF;
-            data += ('0' + b.toString(16)).slice(-2);
+            data += ('0' + b.toString(16)).slice(-2).toUpperCase();
         }
         return { x: x, len: len, d: data };
     }

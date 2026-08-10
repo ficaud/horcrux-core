@@ -69,7 +69,7 @@ class SVGTest : public ::testing::Test
     void SetUp() override
     {
         // Encode a fixed, non-trivial payload so every test has a valid QR grid.
-        ASSERT_TRUE(encodeText("Horcrux Core", qrcode_));
+        ASSERT_TRUE(encodeText("HORCRUX CORE", qrcode_));
         size_ = qrcode_[0];
         ASSERT_GT(size_, 0);
     }
@@ -227,7 +227,7 @@ TEST_F(SVGTest, SameInputProducesSameOutput)
 TEST_F(SVGTest, DifferentInputProducesDifferentOutput)
 {
     uint8_t other[kBufLen];
-    ASSERT_TRUE(encodeText("a different payload", other));
+    ASSERT_TRUE(encodeText("A DIFFERENT PAYLOAD", other));
     int otherSize = other[0];
     ASSERT_GT(otherSize, 0);
 

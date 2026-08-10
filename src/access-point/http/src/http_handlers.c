@@ -429,7 +429,7 @@ static const char *handler_shares_json_response(const struct sss_share *shares)
         for (size_t j = 0; j < shares[i].len; j++)
         {
             size_t pos = strlen(hex);
-            snprintf(hex + pos, sizeof(hex) - pos, "%02x", shares[i].data[j]);
+            snprintf(hex + pos, sizeof(hex) - pos, "%02X", shares[i].data[j]);
         }
 
         n = snprintf(p, room, "%s{\"x\":%u,\"d\":\"%s\"}", (i > 0) ? "," : "", shares[i].x, hex);

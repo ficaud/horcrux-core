@@ -261,7 +261,7 @@ TEST_F(QRCodeTest, NotUniformGrid)
 TEST_F(QRCodeTest, TextTooLongFails)
 {
     // A very long text that cannot fit in any version (1..40) at ECC LOW.
-    std::string tooLong(3000, 'x');
+    std::string tooLong(5000, 'X');
     EXPECT_FALSE(qrcodegen_encodeText(tooLong.c_str(), temp_, qrcode_));
     EXPECT_EQ(qrcode_[0], 0) << "qrcode[0] should be set to 0 (invalid size sentinel) on failure";
 }
