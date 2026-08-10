@@ -108,6 +108,31 @@
             }
         },
         {
+            "label": "Build & Run Unit Tests",
+            "type": "shell",
+            "command": "bash",
+            "args": [
+                "-lc",
+                "cmake -S . -B build-tests -DBUILD_TESTS=ON && cmake --build build-tests && ctest --test-dir build-tests --output-on-failure"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "group": {
+                "kind": "test",
+                "isDefault": true
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "clear": true
+            }
+        },
+        {
             "label": "Flash ESP32-S3 via JTAG (RPi)",
             "type": "shell",
             "command": "bash",
