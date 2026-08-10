@@ -59,3 +59,4 @@ CLAUDE.md
 tests/Testing/Temporary
 /doc/commands.md
 /.cache/clangd/index
+/Testing/Temporary

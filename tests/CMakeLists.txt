@@ -89,6 +89,12 @@ target_include_directories(svg_test PRIVATE
     ${SVG_SRC_DIR}                               # for qrcode_to_svg.h
 )
 
+# Absolute path to the golden reference SVG directory so the tests can locate
+# the seed-phrase share reference files regardless of the working directory.
+target_compile_definitions(svg_test PRIVATE
+    REFERENCE_SVG_DIR="${CMAKE_CURRENT_SOURCE_DIR}/reference/svg"
+)
+
 target_link_libraries(svg_test PRIVATE
     GTest::GTest
     GTest::Main
