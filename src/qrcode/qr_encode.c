@@ -22,16 +22,20 @@
  *
  * This is a reduced build of the upstream Nayuki library tailored to this
  * application. Removed compared to upstream:
- *   - ECI and Kanji encoding modes (numeric, alphanumeric and byte remain)
+ *   - ECI, Kanji, byte and numeric encoding modes (alphanumeric remains)
  *   - the segments / binary mid-level API (encodeSegments*, makeBytes, makeEci...)
  *   - the MEDIUM / QUARTILE / HIGH error correction levels (only LOW is kept)
  *   - the forced-mask option and the ECC boosting
- * The only supported use case is encoding a UTF-8 text string with ECC LOW,
- * mask AUTO and versions 1–40, producing the same bit-packed qrcode[] format
- * as upstream (byte 0 = size, modules from byte 1, row-major, LSB first).
+ * The only supported use case is encoding an alphanumeric text string with
+ * ECC LOW, mask AUTO and versions 1–40, producing the same bit-packed qrcode[]
+ * format as upstream (byte 0 = size, modules from byte 1, row-major, LSB first).
  */
 
 #include "qr_encode.h"
+
+#include <zephyr/logging/log.h>
+
+#include "zephyr/logging/log_core.h"
 
 #include <limits.h>
 #include <stdlib.h>
@@ -65,23 +69,14 @@ static const int PENALTY_N2 = 3;
 static const int PENALTY_N3 = 40;
 static const int PENALTY_N4 = 10;
 
+LOG_MODULE_REGISTER(qr_encode, LOG_LEVEL_INF);
 /* ===========================================================================
  * Private types
  * =========================================================================== */
-
-/* Describes how a segment's data bits are interpreted. */
-typedef enum
-{
-    MODE_NUMERIC = 0x1,
-    MODE_ALPHANUMERIC = 0x2,
-    MODE_BYTE = 0x4,
-} qrcodegen_Mode;
-
 /* A single segment of data bits, packed in bitwise big endian. */
 typedef struct
 {
-    qrcodegen_Mode mode;
-    int numChars; /* characters for numeric/alphanumeric, bytes for byte mode */
+    int numChars; /* number of alphanumeric characters */
     uint8_t *data;
     int bitLength;
 } qrcodegen_Segment;
@@ -116,12 +111,10 @@ static bool getModuleBounded(const uint8_t qrcode[], int x, int y);
 static void setModuleBounded(uint8_t qrcode[], int x, int y, bool isDark);
 static void setModuleUnbounded(uint8_t qrcode[], int x, int y, bool isDark);
 static bool getBit(int x, int i);
-static bool isNumeric(const char *text);
 static bool isAlphanumeric(const char *text);
-static qrcodegen_Segment makeNumeric(const char *digits, uint8_t buf[]);
 static qrcodegen_Segment makeAlphanumeric(const char *text, uint8_t buf[]);
-static int calcSegmentBitLength(qrcodegen_Mode mode, size_t numChars);
-static int numCharCountBits(qrcodegen_Mode mode, int version);
+static int calcSegmentBitLength(size_t numChars);
+static int numCharCountBits(int version);
 
 /* ===========================================================================
  * Public functions
@@ -129,47 +122,33 @@ static int numCharCountBits(qrcodegen_Mode mode, int version);
 
 bool qrcodegen_encodeText(const char *text, uint8_t tempBuffer[], uint8_t qrcode[])
 {
+    bool ret = false;
+
     if (text == NULL || tempBuffer == NULL || qrcode == NULL)
     {
         if (qrcode != NULL)
         {
             qrcode[0] = 0; /* Invalid size sentinel */
         }
-        return false;
+
+        goto exit;
     }
 
-    size_t textLen = strlen(text);
+    /* Build a single segment in the compact alphanumeric mode. */
 
-    /* Build a single segment in the most compact supported mode. */
-    qrcodegen_Segment seg;
-    if (isNumeric(text))
+    if (!isAlphanumeric(text))
     {
-        seg = makeNumeric(text, tempBuffer);
+        /* Only alphanumeric mode is supported. */
+        qrcode[0] = 0; /* Invalid size sentinel */
+        goto exit;
     }
-    else if (isAlphanumeric(text))
-    {
-        seg = makeAlphanumeric(text, tempBuffer);
-    }
-    else
-    {
-        /* Byte mode: copy the raw bytes into tempBuffer. */
-        if (textLen > (size_t)qrcodegen_BUFFER_LEN_FOR_VERSION(qrcodegen_VERSION_MAX))
-        {
-            qrcode[0] = 0; /* Invalid size sentinel */
-            return false;
-        }
-        for (size_t i = 0; i < textLen; i++)
-            tempBuffer[i] = (uint8_t)text[i];
-        seg.mode = MODE_BYTE;
-        seg.bitLength = calcSegmentBitLength(seg.mode, textLen);
-        seg.numChars = (int)textLen;
-        seg.data = tempBuffer;
-    }
+
+    qrcodegen_Segment seg = makeAlphanumeric(text, tempBuffer);
 
     if (seg.bitLength == LENGTH_OVERFLOW)
     {
         qrcode[0] = 0;
-        return false;
+        goto exit;
     }
 
     /* Find the smallest version (1..40) that fits the segment at ECC LOW. */
@@ -178,21 +157,24 @@ bool qrcodegen_encodeText(const char *text, uint8_t tempBuffer[], uint8_t qrcode
     for (version = qrcodegen_VERSION_MIN;; version++)
     {
         int dataCapacityBits = getNumDataCodewords(version) * 8;
-        dataUsedBits = 4 + numCharCountBits(seg.mode, version) + seg.bitLength;
+        dataUsedBits = 4 + numCharCountBits(version) + seg.bitLength;
         if (dataUsedBits <= dataCapacityBits)
-            break; /* This version fits the data */
+        {
+            break; /* This version fits the data. */
+        }
+
         if (version >= qrcodegen_VERSION_MAX)
         {
             qrcode[0] = 0;
-            return false;
+            goto exit;
         }
     }
 
     /* Concatenate the mode header and the data bits. */
     memset(qrcode, 0, (size_t)qrcodegen_BUFFER_LEN_FOR_VERSION(version) * sizeof(qrcode[0]));
     int bitLen = 0;
-    appendBitsToBuffer((unsigned int)seg.mode, 4, qrcode, &bitLen);
-    appendBitsToBuffer((unsigned int)seg.numChars, numCharCountBits(seg.mode, version), qrcode, &bitLen);
+    appendBitsToBuffer(MODE_ALPHANUMERIC, 4, qrcode, &bitLen);
+    appendBitsToBuffer((unsigned int)seg.numChars, numCharCountBits(version), qrcode, &bitLen);
     for (int j = 0; j < seg.bitLength; j++)
     {
         int bit = (seg.data[j >> 3] >> (7 - (j & 7))) & 1;
@@ -235,7 +217,10 @@ bool qrcodegen_encodeText(const char *text, uint8_t tempBuffer[], uint8_t qrcode
     }
     applyMask(tempBuffer, qrcode, bestMask); /* Apply the final mask */
     drawFormatBits(bestMask, qrcode); /* Overwrite with the real format bits */
-    return true;
+    ret = true;
+
+exit:
+    return ret;
 }
 
 int qrcodegen_getSize(const uint8_t qrcode[])
@@ -747,17 +732,6 @@ static bool getBit(int x, int i)
     return ((x >> i) & 1) != 0;
 }
 
-/* Returns true iff every character of text is a decimal digit. */
-static bool isNumeric(const char *text)
-{
-    for (; *text != '\0'; text++)
-    {
-        if (*text < '0' || *text > '9')
-            return false;
-    }
-    return true;
-}
-
 /* Returns true iff every character of text is in the alphanumeric set. */
 static bool isAlphanumeric(const char *text)
 {
@@ -769,44 +743,12 @@ static bool isAlphanumeric(const char *text)
     return true;
 }
 
-/* Builds a numeric-mode segment for the given digit string. */
-static qrcodegen_Segment makeNumeric(const char *digits, uint8_t buf[])
-{
-    qrcodegen_Segment result;
-    size_t len = strlen(digits);
-    result.mode = MODE_NUMERIC;
-    int bitLen = calcSegmentBitLength(result.mode, len);
-    result.numChars = (int)len;
-    if (bitLen > 0)
-        memset(buf, 0, ((size_t)bitLen + 7) / 8 * sizeof(buf[0]));
-    result.bitLength = 0;
-
-    unsigned int accumData = 0;
-    int accumCount = 0;
-    for (; *digits != '\0'; digits++)
-    {
-        accumData = accumData * 10 + (unsigned int)(*digits - '0');
-        accumCount++;
-        if (accumCount == 3)
-        {
-            appendBitsToBuffer(accumData, 10, buf, &result.bitLength);
-            accumData = 0;
-            accumCount = 0;
-        }
-    }
-    if (accumCount > 0) /* 1 or 2 digits remaining */
-        appendBitsToBuffer(accumData, accumCount * 3 + 1, buf, &result.bitLength);
-    result.data = buf;
-    return result;
-}
-
 /* Builds an alphanumeric-mode segment for the given text. */
 static qrcodegen_Segment makeAlphanumeric(const char *text, uint8_t buf[])
 {
     qrcodegen_Segment result;
     size_t len = strlen(text);
-    result.mode = MODE_ALPHANUMERIC;
-    int bitLen = calcSegmentBitLength(result.mode, len);
+    int bitLen = calcSegmentBitLength(len);
     result.numChars = (int)len;
     if (bitLen > 0)
         memset(buf, 0, ((size_t)bitLen + 7) / 8 * sizeof(buf[0]));
@@ -832,47 +774,22 @@ static qrcodegen_Segment makeAlphanumeric(const char *text, uint8_t buf[])
     return result;
 }
 
-/* Returns the number of data bits needed for a segment of the given size and mode. */
-static int calcSegmentBitLength(qrcodegen_Mode mode, size_t numChars)
+/* Returns the number of data bits needed for an alphanumeric segment of numChars characters. */
+static int calcSegmentBitLength(size_t numChars)
 {
     if (numChars > (unsigned int)INT16_MAX)
         return LENGTH_OVERFLOW;
     long result = (long)numChars;
-    if (mode == MODE_NUMERIC)
-        result = (result * 10 + 2) / 3; /* ceil(10/3 * n) */
-    else if (mode == MODE_ALPHANUMERIC)
-        result = (result * 11 + 1) / 2; /* ceil(11/2 * n) */
-    else if (mode == MODE_BYTE)
-        result *= 8;
-    else
-        return LENGTH_OVERFLOW; /* Invalid mode */
+    result = (result * 11 + 1) / 2; /* ceil(11/2 * n) */
     if (result < 0 || result > INT16_MAX)
         return LENGTH_OVERFLOW;
     return (int)result;
 }
 
-/* Returns the bit width of the character count field for the given mode and version. */
-static int numCharCountBits(qrcodegen_Mode mode, int version)
+/* Returns the bit width of the character count field for alphanumeric mode and the given version. */
+static int numCharCountBits(int version)
 {
     int i = (version + 7) / 17;
-    switch (mode)
-    {
-        case MODE_NUMERIC:
-        {
-            static const int temp[] = {10, 12, 14};
-            return temp[i];
-        }
-        case MODE_ALPHANUMERIC:
-        {
-            static const int temp[] = {9, 11, 13};
-            return temp[i];
-        }
-        case MODE_BYTE:
-        {
-            static const int temp[] = {8, 16, 16};
-            return temp[i];
-        }
-        default:
-            return -1; /* Invalid mode */
-    }
+    static const int temp[] = {9, 11, 13};
+    return temp[i];
 }
