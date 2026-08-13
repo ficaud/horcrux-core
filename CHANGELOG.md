@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-08-13
+
+### added
+- `tasks.json`: unitary tests task
+- `test_qrcode.cpp, test_svg.cpp`: golden tests for qrcode geenration and parsing into svg ([#37](https://github.com/ficaud/horcrux-core/issues/37)).
+- `contribution.md`: unit tests related helpers
+
+### fixed
+- `github_workflows`: update nodejs > 20 fo fix action's warning about it
+
+### changed
+- `readme.md`: minor fixed + improvements
+- `sss.c`: now produce upper cases hex strings (to optimize qrencode)
+- `qr_encode.c`: only support alphanumeric mode (opitmized) + minor code formatting ([#35](https://github.com/ficaud/horcrux-core/issues/35))
+
 ## [1.2.3] - 2026-08-08
 
 ### Added
