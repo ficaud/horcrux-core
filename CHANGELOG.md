@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-08-14
+
+### added
+- `docker/`: Dockerfile and docker-compose.yml to build a WASM image of horcrux core
+- `readme`: features list section
+
+### changed
+- `index.html`: add a message telling the horcrux.co address is only available in the embedded version of horcrux core.
+- `workflow`: update github actions usages to use the latest version
+
 ## [1.3.0] - 2026-08-13
 
 ### added
