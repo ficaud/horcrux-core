@@ -1,0 +1,33 @@
+# SPDX-License-Identifier: Apache-2.0
+#
+# Horcrux Core — Docker Compose configuration.
+#
+# Runs the WASM demo (Shamir's Secret Sharing web UI) in a lightweight
+# nginx container. Works on any platform: Linux, macOS, Windows, and
+# Raspberry Pi (arm64 / arm/v7).
+#
+# Usage:
+#   docker compose up -d
+#   # then open http://localhost:8080
+#
+# To use a different port, override with:
+#   HORCRUX_PORT=9090 docker compose up -d
+#
+# To identify which version of Horcrux is running, open:
+#   http://localhost:8080/version.json
+# or inspect the image tag:
+#   docker inspect horcrux --format '{{index .Config.Labels "org.opencontainers.image.version"}}'
+
+services:
+  horcrux:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      args:
+        VERSION: ${HORCRUX_VERSION:-dev}
+    image: horcrux-wasm:latest
+    container_name: horcrux
+    ports:
+      - "${HORCRUX_PORT:-8080}:80"
+    restart: unless-stopped
+

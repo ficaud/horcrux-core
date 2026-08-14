@@ -74,6 +74,12 @@ You also have the possibility to generate QR codes with the shares (in the split
 <img src="doc/img/unsplit.PNG" width="250" alt="unsplit tab from horcrux core">
 </div>
 
+## Run Horcrux core the with Docker on a local machine
+
+The WASM demo (the same web UI as the ESP32 captive portal, but running 100% client-side in the browser) is packaged as a Docker image. It works on any platform: **Linux**, **macOS**, **Windows**, and **Raspberry Pi** (arm64 / arm/v7).
+
+Please refer to the [horcrux-core docker doc](doc/docker.md) for more information.
+
 ## Contribution
 
 In [contribution](doc/contribution.md), you'll find all the required information to build and flash the Horcrux Core ESP32 firmware.

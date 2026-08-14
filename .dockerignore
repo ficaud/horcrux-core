@@ -1,0 +1,45 @@
+# SPDX-License-Identifier: Apache-2.0
+#
+# Docker build context exclusions.
+#
+# The Dockerfile only needs the sources listed below; everything else
+# (Zephyr modules, bootloader, build artifacts, git metadata) is excluded
+# to keep the build context small and fast.
+
+# Git
+.git
+.gitignore
+
+# Build artifacts
+build/
+*.bin
+*.elf
+*.map
+
+# Zephyr / west
+.west/
+zephyr/
+modules/
+bootloader/
+external/
+tools/
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+
+# Tests (not needed for the WASM image)
+tests/
+
+# Documentation (only doc/img/horcrux-logo_icone.svg is needed, copied explicitly)
+doc/commands.md
+doc/contribution.md
+doc/img/split.PNG
+doc/img/unsplit.PNG
+doc/img/success_flashing.PNG
+
