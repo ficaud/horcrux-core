@@ -16,19 +16,20 @@
 </br>
 </div>
 
-Easy to use, offline, open source, and secure secret sharing for your digital life.
-
 Horcrux Core is a firmware for ESP32 boards that implements Shamir's Secret Sharing algorithm to split and recover secrets (like passwords, private keys, bitcoin seed phrases etc.) in a secure way.
 
 See the [demo](https://ficaud.github.io/horcrux-core/) in a WASM type web page hosted by github to see how it works.
 
 See the [full doc](https://ficaud.github.io/horcrux-hw/) to learn more about the general concepts of Horcrux and how to build it yourself in full autonomous.
 
-## Boards compatibility
+## Features
 
-This project's firmware is compatible with the following ESP32 boards:
-* [ESP32-S3-DevKitC-1](https://docs.zephyrproject.org/latest/boards/espressif/esp32s3_devkitc/doc/index.html)
-* [ESP32-DevKit-V1](https://docs.zephyrproject.org/latest/boards/others/doit_esp32_devkit_v1/doc/index.html)
+- **Fully offline & self-hosted** — Runs on budget, widely available ESP32 hardware with no internet connection required. The device creates its own Wi-Fi access point and serves everything locally.
+- Implements Shamir's Secret Sharing over GF(2⁸) with a 3-of-5 threshold scheme. The secret is split into 5 shares, any 3 of which are required to reconstruct it. Secrets never leave the device during split/recovery via the embedded web UI.
+- **Friendly web interface** — A captive-portal web app lets you split secrets and recover them with zero technical knowledge.
+- **QR code support** — Generate scannable QR codes for each share on the split page, and scan shares back using your camera (or a file picker on mobile) to reconstruct the secret on the unsplit page.
+- **Easy flashing** — A browser-based web flasher (Chrome/Edge) flashes the firmware over USB without any technical setup, and even generates a QR code to auto-join the device's Wi-Fi network afterward.
+- **Open source & free** — Licensed under GPL 3.0, with an open development process and publicly available documentation.
 
 ## How to flash the firmware
 
