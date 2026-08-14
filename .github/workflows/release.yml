@@ -18,6 +18,7 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 jobs:
   build:
@@ -133,5 +134,30 @@ jobs:
             4. Click Connect & Flash, select the serial port when prompted.
             5. Wait for the progress bar to complete — done!
           files: flattened/*
-          draft: true
+          draft: false
           generate_release_notes: false
+
+  post-publish:
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Determine version
+        id: version
+        run: |
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            echo "tag=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Trigger Pages workflow
+        run: |
+          gh workflow run pages.yml \
+            --ref "${{ github.ref }}" \
+            -f version="${{ steps.version.outputs.tag }}"
+
+      - name: Trigger Docker workflow
+        run: |
+          gh workflow run docker.yml \
+            --ref "${{ github.ref }}" \
+            -f version="${{ steps.version.outputs.tag }}"

@@ -13,6 +13,11 @@ on:
       - 'src/access-point/**'
       - 'src/sss/**'
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag to build the page for (ex: v1.0.0)'
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -76,8 +81,15 @@ jobs:
             echo "ESP32: no release yet, skipping firmware download"
           fi
 
-          # Write a tiny manifest for the flash page to read
-          TAG=$(echo "$RELEASE" | jq -r '.tag_name // "latest"')
+          # Write a tiny manifest for the flash page to read.
+          # Prefer the explicitly requested version (from a release dispatch),
+          # otherwise fall back to the latest release tag.
+          TAG_INPUT="${{ inputs.version }}"
+          if [ -n "$TAG_INPUT" ]; then
+            TAG="$TAG_INPUT"
+          else
+            TAG=$(echo "$RELEASE" | jq -r '.tag_name // "latest"')
+          fi
           echo "{\"tag\":\"$TAG\"}" > pages/firmware.json
 
           ls -la pages/ pages/scripts/
