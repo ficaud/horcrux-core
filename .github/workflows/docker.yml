@@ -1,0 +1,104 @@
+# SPDX-License-Identifier: Apache-2.0
+#
+# Docker — Build and push the Horcrux WASM demo image to GitHub Container
+# Registry (GHCR). Produces multi-arch images (linux/amd64, linux/arm64,
+# linux/arm/v7) so it runs on Linux, macOS, and Raspberry Pi.
+#
+# The image is published as:
+#   ghcr.io/<owner>/horcrux-wasm:latest
+#   ghcr.io/<owner>/horcrux-wasm:<tag>   (on git tags)
+
+name: Docker
+
+on:
+  push:
+    branches: [main, master]
+    tags: ['v*']
+    paths:
+      - '.github/workflows/docker.yml'
+      - 'docker/**'
+      - 'docker-compose.yml'
+      - 'demo/**'
+      - 'src/access-point/**'
+      - 'src/sss/**'
+      - 'src/qrcode/**'
+      - 'src/svg/**'
+  pull_request:
+    branches: [main, master]
+    paths:
+      - '.github/workflows/docker.yml'
+      - 'docker/**'
+      - 'docker-compose.yml'
+      - 'demo/**'
+      - 'src/access-point/**'
+      - 'src/sss/**'
+      - 'src/qrcode/**'
+      - 'src/svg/**'
+  workflow_dispatch:
+
+env:
+  IMAGE_NAME: horcrux-wasm
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute image tags and version
+        id: meta
+        run: |
+          IMG="ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}"
+          echo "image=$IMG" >> "$GITHUB_OUTPUT"
+
+          # Determine the version string for the image manifest.
+          if [ "${{ github.event_name }}" = "push" ] && [ "${{ startsWith(github.ref, 'refs/tags/') }}" = "true" ]; then
+            # Git tag (release): tag with the version and mark as stable.
+            echo "tags=$IMG:latest,$IMG:${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+            echo "version=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+            # Warning : dev/jfi is the only branch that triggers the dev build
+            elif [ "${{ github.ref_name }}" = "dev/jfi" ]; then
+            # Development branch: tag as dev, do NOT overwrite latest.
+            echo "tags=$IMG:dev" >> "$GITHUB_OUTPUT"
+            echo "version=dev" >> "$GITHUB_OUTPUT"
+          else
+            # main / master: stable build, tag as latest.
+            echo "tags=$IMG:latest" >> "$GITHUB_OUTPUT"
+            echo "version=latest" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile
+          platforms: linux/amd64,linux/arm64,linux/arm/v7
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          build-args: |
+            VERSION=${{ steps.meta.outputs.version }}
+            COMMIT_SHA=${{ github.sha }}
+            BRANCH=${{ github.ref_name }}
+            BUILD_DATE=${{ github.event.head_commit.timestamp }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
