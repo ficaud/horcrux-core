@@ -61,3 +61,4 @@ tests/Testing/Temporary
 /.cache/clangd/index
 /Testing/Temporary
 /pages
+/demo/scripts

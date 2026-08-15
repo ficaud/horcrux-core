@@ -22,6 +22,26 @@
         document.head.appendChild(script);
     })();
 
+    /* ── QR decode WASM bootstrap (quirc) ──
+       Only present in the WASM demo. On the embedded device qr_decode.js does
+       not exist, so script.onerror fires and we fall back to jsQR. ── */
+    var qrDecodeModule = null;
+
+    (function () {
+        var script = document.createElement('script');
+        script.src = 'scripts/qr_decode.js';
+        script.onload = function () {
+            QRDecodeWasm().then(function (m) {
+                qrDecodeModule = m;
+                console.log('[horcrux] QR decoder: quirc (WASM)');
+            });
+        };
+        script.onerror = function () {
+            console.log('[horcrux] QR decoder: jsQR (fallback)');
+        };
+        document.head.appendChild(script);
+    })();
+
     /* ── Shared helpers ── */
     var shareRows = document.querySelectorAll('.share-row');
     var unsplitBtn = document.getElementById('unsplit-btn');
@@ -203,17 +223,86 @@
         }
     }
 
+    /* ── Grayscale + WASM decode helpers (quirc) ──
+       Draw a source (image or video) onto the canvas, produce a grayscale
+       Uint8Array (one byte per pixel). If the WASM quirc module is loaded,
+       decode with it; otherwise fall back to jsQR. ── */
+    var QR_CLIENT_MAX_DIM = 224;
+
+    function drawToGray(src, naturalW, naturalH) {
+        var scale = Math.min(1, QR_CLIENT_MAX_DIM / Math.max(naturalW, naturalH));
+        var w = Math.max(1, Math.round(naturalW * scale));
+        var h = Math.max(1, Math.round(naturalH * scale));
+
+        qrCanvas.width  = w;
+        qrCanvas.height = h;
+        qrCtx.imageSmoothingEnabled = true;
+        qrCtx.drawImage(src, 0, 0, w, h);
+
+        var rgba = qrCtx.getImageData(0, 0, w, h).data;
+        var gray = new Uint8Array(w * h);
+        for (var i = 0; i < w * h; i++) {
+            var r = rgba[i * 4], g = rgba[i * 4 + 1], b = rgba[i * 4 + 2];
+            // ITU-R BT.601 luma — the standard grayscale conversion.
+            gray[i] = (0.299 * r + 0.587 * g + 0.114 * b) | 0;
+        }
+        return { gray: gray, w: w, h: h };
+    }
+
+    function decodeWithWasm(gray, w, h) {
+        if (!qrDecodeModule || !qrDecodeModule._wasm_qr_decode) return null;
+
+        var outSize = 2048;
+        var grayPtr = qrDecodeModule._malloc(w * h);
+        var outPtr  = qrDecodeModule._malloc(outSize);
+        if (!grayPtr || !outPtr) {
+            if (grayPtr) qrDecodeModule._free(grayPtr);
+            if (outPtr)  qrDecodeModule._free(outPtr);
+            return null;
+        }
+
+        qrDecodeModule.HEAPU8.set(gray, grayPtr);
+        var len = qrDecodeModule._wasm_qr_decode(grayPtr, w, h, outPtr, outSize);
+
+        var text = null;
+        if (len > 0) {
+            text = qrDecodeModule.UTF8ToString(outPtr, len);
+        }
+
+        qrDecodeModule._free(grayPtr);
+        qrDecodeModule._free(outPtr);
+        return text;
+    }
+
     function startQRScan() {
+        // Report which decoder is active so the user knows the code path.
+        if (qrStatus) {
+            qrStatus.textContent = qrDecodeModule
+                ? 'Point the camera at a QR code (quirc/WASM)'
+                : 'Point the camera at a QR code (jsQR)';
+        }
+
         function tick() {
             if (qrVideo.readyState >= qrVideo.HAVE_ENOUGH_DATA && qrVideo.videoWidth > 0) {
-                var w = qrVideo.videoWidth, h = qrVideo.videoHeight;
-                qrCanvas.width = w; qrCanvas.height = h;
-                qrCtx.drawImage(qrVideo, 0, 0, w, h);
-                var code = jsQR(qrCtx.getImageData(0, 0, w, h).data, w, h,
-                    { inversionAttempts: 'attemptBoth' });
-                if (code && code.data) {
+                var frame = drawToGray(qrVideo, qrVideo.videoWidth, qrVideo.videoHeight);
+
+                var text = null;
+                if (qrDecodeModule) {
+                    text = decodeWithWasm(frame.gray, frame.w, frame.h);
+                } else {
+                    // Fallback: jsQR on the full-size frame.
+                    var w = qrVideo.videoWidth, h = qrVideo.videoHeight;
+                    qrCanvas.width = w; qrCanvas.height = h;
+                    qrCtx.setTransform(1, 0, 0, 1, 0, 0);
+                    qrCtx.drawImage(qrVideo, 0, 0, w, h);
+                    var code = jsQR(qrCtx.getImageData(0, 0, w, h).data, w, h,
+                        { inversionAttempts: 'attemptBoth' });
+                    if (code && code.data) text = code.data;
+                }
+
+                if (text) {
                     stopQRScan();
-                    fillShareFromQR(code.data.trim());
+                    fillShareFromQR(text.trim());
                     return;
                 }
             }
@@ -255,16 +344,21 @@
         img.src = url;
     });
 
-    /* ── Multi-scale × 4-rotation decode (handles iPhone EXIF) ──
-       Each rotation + scale combo uses its own canvas dimensions so
-       getImageData never overflows.  jsQR works best when the QR module
-       area is roughly 200-1500 px wide; we sweep 4 targets × 4 rotations.
-       Rendering is nearest-neighbour when downscaling > 2× — keeps QR
-       module edges sharp instead of blurring them via bilinear resample. ── */
+    /* ── File / gallery decode ──
+       If the WASM quirc module is loaded, decode the grayscale image directly
+       (quirc handles rotation natively, so a single pass is enough). Otherwise
+       fall back to the jsQR multi-scale × 4-rotation sweep. ── */
     function decodeFromImg(img) {
         var iw = img.naturalWidth, ih = img.naturalHeight;
         if (!iw || !ih) return null;
 
+        // WASM quirc path — single grayscale pass.
+        if (qrDecodeModule) {
+            var frame = drawToGray(img, iw, ih);
+            return decodeWithWasm(frame.gray, frame.w, frame.h);
+        }
+
+        // Fallback: jsQR multi-scale × 4-rotation sweep.
         var targets = [1000, 1500, 600, 400];
 
         // { drawWidth, drawHeight, rotation-radians, translateX, translateY }

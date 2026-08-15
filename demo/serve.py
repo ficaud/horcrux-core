@@ -33,10 +33,13 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         path = path.split('?', 1)[0].split('#', 1)[0]
         parts = [p for p in path.lstrip('/').split('/') if p]
 
-        # Map the WASM demo modules (sss.js/sss.wasm/qr.js/qr.wasm) from
-        # demo/scripts/ into the /scripts/ namespace.
+        # Map the WASM demo modules (sss.js/sss.wasm/qr.js/qr.wasm/
+        # qr_decode.js/qr_decode.wasm) from demo/scripts/ into the /scripts/
+        # namespace.
         if parts[:1] == ['scripts'] and parts[-1] in ('sss.js', 'sss.wasm',
-                                                      'qr.js', 'qr.wasm'):
+                                                      'qr.js', 'qr.wasm',
+                                                      'qr_decode.js',
+                                                      'qr_decode.wasm'):
             return os.path.join(WASM_DIR, *parts[1:])
 
         # Everything else is served live from the captive-portal assets.

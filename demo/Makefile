@@ -58,9 +58,29 @@ QR_INC = -I$(HORCRUX_QR_DIR) -I$(HORCRUX_SVG_DIR)
 QR_OUT_WASM = $(OUT_DIR)/qr.wasm
 QR_OUT_JS = $(OUT_DIR)/qr.js
 
+# ── QR Code decode WASM (quirc) ──
+
+QR_DECODE_WASM_FLAGS = \
+	-s MODULARIZE=1 \
+	-s EXPORT_NAME=QRDecodeWasm \
+	-s EXPORTED_FUNCTIONS=_wasm_qr_decode,_malloc,_free \
+	-s EXPORTED_RUNTIME_METHODS=ccall,cwrap,getValue,setValue,UTF8ToString,HEAPU8 \
+	-s NO_EXIT_RUNTIME=1 \
+	-s FILESYSTEM=0 \
+	--no-entry
+
+QUIRC_DIR = ../external/quirc/lib
+QUIRC_SRC = $(QUIRC_DIR)/quirc.c $(QUIRC_DIR)/decode.c $(QUIRC_DIR)/identify.c $(QUIRC_DIR)/version_db.c
+# The wrapper (demo) plus the portable decoder logic moved into src/qrcode/.
+HORCRUX_QR_DECODE_DIR = ../src/qrcode
+QR_DECODE_SRC = src/qr_decode_wasm.c $(HORCRUX_QR_DECODE_DIR)/qr_decode.c $(QUIRC_SRC)
+QR_DECODE_INC = -I$(HORCRUX_QR_DECODE_DIR) -I$(QUIRC_DIR)
+QR_DECODE_OUT_WASM = $(OUT_DIR)/qr_decode.wasm
+QR_DECODE_OUT_JS = $(OUT_DIR)/qr_decode.js
+
 .PHONY: all clean
 
-all: $(OUT_JS) $(OUT_WASM) $(QR_OUT_JS) $(QR_OUT_WASM)
+all: $(OUT_JS) $(OUT_WASM) $(QR_OUT_JS) $(QR_OUT_WASM) $(QR_DECODE_OUT_JS) $(QR_DECODE_OUT_WASM)
 
 $(OUT_DIR):
 	mkdir -p $(OUT_DIR)
@@ -71,5 +91,8 @@ $(OUT_JS) $(OUT_WASM): $(SRC) | $(OUT_DIR)
 $(QR_OUT_JS) $(QR_OUT_WASM): $(QR_SRC) | $(OUT_DIR)
 	$(EMCC) $(CFLAGS) $(QR_INC) $(QR_WASM_FLAGS) -o $(QR_OUT_JS) $(QR_SRC)
 
+$(QR_DECODE_OUT_JS) $(QR_DECODE_OUT_WASM): $(QR_DECODE_SRC) | $(OUT_DIR)
+	$(EMCC) $(CFLAGS) $(QR_DECODE_INC) $(QR_DECODE_WASM_FLAGS) -o $(QR_DECODE_OUT_JS) $(QR_DECODE_SRC)
+
 clean:
-	rm -f $(OUT_JS) $(OUT_WASM) $(QR_OUT_JS) $(QR_OUT_WASM)
+	rm -f $(OUT_JS) $(OUT_WASM) $(QR_OUT_JS) $(QR_OUT_WASM) $(QR_DECODE_OUT_JS) $(QR_DECODE_OUT_WASM)

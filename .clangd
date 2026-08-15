@@ -23,6 +23,12 @@ CompileFlags:
     - "-I/workspaces/horcrux/build-esp32s3/zephyr/include/generated/zephyr"
     - "-I/workspaces/horcrux/zephyr/lib/libc/picolibc/include"
     - "-I/workspaces/horcrux/zephyr/lib/libc/common/include"
+    # Horcrux's own include dirs that aren't part of the firmware build but are
+    # referenced by demo-only / portable sources. qr_decode.c lives in
+    # src/qrcode/ and is compiled only by the demo Makefile, so its quirc
+    # include path is not present in the firmware compile_commands.json.
+    - "-I/workspaces/horcrux/src/qrcode"
+    - "-I/workspaces/horcrux/external/quirc/lib"
   Remove:
     - "-mlongcalls"
     - "-fno-printf-return-value"
