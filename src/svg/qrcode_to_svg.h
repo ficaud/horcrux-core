@@ -1,3 +1,17 @@
+/**
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ *
+ * @file qrcode_to_svg.h
+ *
+ * @brief QR Code to SVG conversion utility.
+ *
+ * @author Julien F.
+ * @date 2026-07-12
+ *
+ * @details This module provides functions to convert QR Code data into SVG format.
+ */
+
+
 #ifndef QR_CODE_TO_SVG_H
 #define QR_CODE_TO_SVG_H
 

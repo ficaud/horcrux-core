@@ -1,4 +1,6 @@
 /**
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ *
  * @file qrcode_to_svg.c
  *
  * @brief QR Code to SVG conversion utility.

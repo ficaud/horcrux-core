@@ -1,5 +1,5 @@
 /*
- * SPDX-License-Identifier: Apache-2.0
+ * SPDX-License-Identifier: GPL-3.0-or-later
  *
  * Stub for Zephyr's sys_rand_get() — uses /dev/urandom on Linux.
  *

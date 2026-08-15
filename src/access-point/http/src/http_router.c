@@ -1,4 +1,6 @@
 /**
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ *
  * @file http_router.c
  *
  * @brief HTTP request routing for the captive portal.

@@ -1,4 +1,6 @@
 /**
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ *
  * @file dns.c
  *
  * @brief DNS interceptor for the captive portal.

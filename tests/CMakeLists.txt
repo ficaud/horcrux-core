@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: Apache-2.0
+# SPDX-License-Identifier: GPL-3.0-or-later
 
 # Allow this file to be used both as a standalone project
 # (cmake -S tests -B tests/build) and as a subdirectory of the

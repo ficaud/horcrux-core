@@ -1,4 +1,6 @@
 /**
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ *
  * @file dhcp.c
  *
  * @brief DHCP server for the captive portal.
