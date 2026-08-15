@@ -153,6 +153,7 @@ jobs:
       - name: Trigger Pages workflow
         run: |
           gh workflow run pages.yml \
+            --repo "${{ github.repository }}" \
             --ref "${{ github.ref }}" \
             -f version="${{ steps.version.outputs.tag }}"
         env:
@@ -160,6 +161,7 @@ jobs:
       - name: Trigger Docker workflow
         run: |
           gh workflow run docker.yml \
+            --repo "${{ github.repository }}" \
             --ref "${{ github.ref }}" \
             -f version="${{ steps.version.outputs.tag }}"
         env:
