@@ -6,6 +6,10 @@
 // ===========================================================================
 #define MACSTR "%02X:%02X:%02X:%02X:%02X:%02X"
 
+// Length of the AP password derived from the device MAC address (see
+// derive_wifi_psk in wifi_mgr.c). Must stay within the WPA2-PSK range (8..63).
+#define WIFI_PSK_LEN 12
+
 // Event mask for Wi-Fi events we are interested in
 #define NET_EVENT_WIFI_MASK                                                                                            \
     (NET_EVENT_WIFI_CONNECT_RESULT | NET_EVENT_WIFI_DISCONNECT_RESULT | NET_EVENT_WIFI_AP_ENABLE_RESULT |              \

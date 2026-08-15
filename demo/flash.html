@@ -67,6 +67,7 @@
             </div>
             <div id="wifi-qr" style="background:#fff;border-radius:8px;padding:8px;display:inline-block"></div>
             <div id="wifi-ssid" style="font-size:12px;margin-top:6px;opacity:0.95;word-break:break-all"></div>
+            <div id="wifi-psk" style="font-size:12px;margin-top:2px;opacity:0.95;word-break:break-all"></div>
             <button id="download-qr-btn" class="btn"
                 style="font-size:12px;padding:8px 16px;width:auto;border:none;text-align:center;background:rgba(255,255,255,0.25);color:#fff;margin-top:10px;display:none">
                 &#x2B07; Download QR (SVG)
@@ -122,6 +123,7 @@
         const wifiQrWrapper = document.getElementById('wifi-qr-wrapper');
         const wifiQrEl = document.getElementById('wifi-qr');
         const wifiSsidEl = document.getElementById('wifi-ssid');
+        const wifiPskEl = document.getElementById('wifi-psk');
         const downloadQrBtn = document.getElementById('download-qr-btn');
 
         let port = null;
@@ -266,7 +268,9 @@
         // The SSID must match what the freshly-flashed firmware broadcasts
         // (see wifi_mgr.c): "Horcrux-" + the last 2 bytes of the MAC formatted
         // as 4 uppercase hex digits (addr[4] and addr[5]).
-        const WIFI_PSK = 'ubx7jrd9kje_ZRC8dqt';
+
+        // Length of the derived password (must match WIFI_PSK_LEN in wifi_mgr.h).
+        const WIFI_PSK_LEN = 12;
 
         // Holds the SVG string of the last generated QR so it can be downloaded.
         let lastQrSvg = null;
@@ -281,6 +285,49 @@
             return `Horcrux-${parts[4].toUpperCase()}${parts[5].toUpperCase()}`;
         }
 
+        // Derives the Wi-Fi password from the device MAC address.
+        // This MUST mirror derive_wifi_psk() in src/access-point/wifi/src/wifi_mgr.c:
+        //   - Compute an FNV-1a 64-bit hash over the MAC bytes (wrapping mod 2^64,
+        //     exactly like the firmware's uint64_t arithmetic)
+        //   - Convert the hash to a fixed-length, upper-case base-36 password
+        //     (least-significant digit first)
+        // Because both the firmware and this page run the exact same algorithm,
+        // the QR code shown after flashing matches the password actually used by
+        // the freshly-flashed device.
+        function deriveWifiPsk(mac) {
+            // readMac() returns a colon-separated string like "AA:BB:CC:DD:EE:FF"
+            const parts = mac.split(':');
+            if (parts.length < 6) {
+                return null;
+            }
+
+            // Upper-case base-36 alphabet (0-9A-Z), same order as in firmware.
+            const alphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
+            // FNV-1a 64-bit hash of the 6 MAC bytes. The firmware stores the hash
+            // in a uint64_t, so multiplications wrap modulo 2^64. BigInt is
+            // unbounded, so we mask to 64 bits after each multiply to replicate
+            // the exact wrap-around behaviour of the C code.
+            const FNV_OFFSET = 0xcbf29ce484222325n;
+            const FNV_PRIME = 0x100000001b3n;
+            const MASK_64 = 0xffffffffffffffffn;
+            let hash = FNV_OFFSET;
+            for (const part of parts) {
+                hash ^= BigInt(parseInt(part, 16));
+                hash = (hash * FNV_PRIME) & MASK_64;
+            }
+
+            // Convert the hash to a fixed-length base-36 password,
+            // least-significant digit first (must match firmware order).
+            let h = hash;
+            let psk = '';
+            for (let i = 0; i < WIFI_PSK_LEN; i++) {
+                psk += alphabet[Number(h % 36n)];
+                h /= 36n;
+            }
+            return psk;
+        }
+
         function showWifiQr(mac) {
             const ssid = buildSsidFromMac(mac);
             if (!ssid) {
@@ -288,9 +335,15 @@
                 return;
             }
 
+            const psk = deriveWifiPsk(mac);
+            if (!psk) {
+                log(`Could not derive password from MAC "${mac}"`, true);
+                return;
+            }
+
             // Standard Wi-Fi QR payload (RFC-like convention used by iOS/Android):
             // WIFI:T:WPA;S:<ssid>;P:<password>;;
-            const wifiString = `WIFI:T:WPA;S:${ssid};P:${WIFI_PSK};;`;
+            const wifiString = `WIFI:T:WPA;S:${ssid};P:${psk};;`;
 
             try {
                 const qr = qrcode(0, 'M'); // type 0 = auto-size, ECC level M
@@ -300,10 +353,12 @@
 
                 wifiQrEl.innerHTML = svg;
                 wifiSsidEl.textContent = `SSID: ${ssid}`;
+                wifiPskEl.textContent = `Password: ${psk}`;
                 wifiQrWrapper.style.display = 'block';
                 lastQrSvg = svg;
                 downloadQrBtn.style.display = 'inline-block';
                 log(`Wi-Fi QR generated for ${ssid}`);
+                log(`Password: ${psk}`);
             } catch (err) {
                 log(`Could not generate Wi-Fi QR: ${err.message}`, true);
             }

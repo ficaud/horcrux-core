@@ -173,6 +173,47 @@ static void wifi_event_handler(struct net_mgmt_event_callback *cb, uint64_t mgmt
     }
 }
 
+/**
+ * @brief Derive the Wi-Fi AP password from the device MAC address.
+ *
+ * @details Computes an FNV-1a 64-bit hash of the given MAC bytes and converts
+ *          it to a fixed-length (WIFI_PSK_LEN), upper-case base-36 password.
+ *          This is fully deterministic: the same MAC always yields the same
+ *          password, and it requires no external crypto/hash library. The demo
+ *          flasher (demo/flash.html) mirrors this exact algorithm in
+ *          JavaScript so the QR code shown after flashing matches the password
+ *          actually used by the freshly-flashed firmware.
+ *
+ * @param mac[in]      : Pointer to the MAC bytes.
+ * @param mac_len[in]  : Number of MAC bytes.
+ * @param out[out]     : Destination buffer, must hold WIFI_PSK_LEN + 1 bytes.
+ *
+ * @return void (the derived password is written to @p out, always NUL-terminated).
+ */
+static void derive_wifi_psk(const uint8_t *mac, size_t mac_len, char *out)
+{
+    /* FNV-1a 64-bit hash of the MAC bytes */
+    uint64_t hash = 0xcbf29ce484222325ULL;
+    for (size_t i = 0; i < mac_len; i++)
+    {
+        hash ^= mac[i];
+        hash *= 0x100000001b3ULL;
+    }
+
+    /* Upper-case base-36 alphabet (0-9A-Z) */
+    static const char alphabet[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+    /* Convert the hash to a fixed-length password, least-significant digit first.
+     * This order must match the JavaScript implementation in demo/flash.html. */
+    uint64_t h = hash;
+    for (int i = 0; i < WIFI_PSK_LEN; i++)
+    {
+        out[i] = alphabet[h % 36];
+        h /= 36;
+    }
+    out[WIFI_PSK_LEN] = '\0';
+}
+
 static int enable_ap_mode(struct net_if **ap_iface)
 {
     struct wifi_connect_req_params ap_config;
@@ -209,13 +250,20 @@ static int enable_ap_mode(struct net_if **ap_iface)
 
     LOG_INF("Turning on AP Mode");
 
+    /* Derive a deterministic WPA2 password from the device MAC address, so that
+     * every device broadcasts a unique access point with a unique password. */
+    char psk_buf[WIFI_PSK_LEN + 1];
+    derive_wifi_psk(link_addr->addr, link_addr->len, psk_buf);
+
+    LOG_INF("AP PSK: %s", psk_buf);
+
     ap_config.ssid = (const uint8_t *)ssid_buf;
     ap_config.ssid_length = (uint8_t)written;
-    ap_config.psk = (const uint8_t *)CONFIG_WIFI_SAMPLE_AP_PSK;
-    ap_config.psk_length = sizeof(CONFIG_WIFI_SAMPLE_AP_PSK) - 1;
+    ap_config.psk = (const uint8_t *)psk_buf;
+    ap_config.psk_length = WIFI_PSK_LEN;
     ap_config.channel = WIFI_CHANNEL_ANY;
     ap_config.band = WIFI_FREQ_BAND_2_4_GHZ;
-    ap_config.security = (sizeof(CONFIG_WIFI_SAMPLE_AP_PSK) == 1) ? WIFI_SECURITY_TYPE_NONE : WIFI_SECURITY_TYPE_PSK;
+    ap_config.security = WIFI_SECURITY_TYPE_PSK;
 
     int ret = net_mgmt(NET_REQUEST_WIFI_AP_ENABLE, *ap_iface, &ap_config, sizeof(struct wifi_connect_req_params));
     if (ret)
