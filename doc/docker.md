@@ -1,28 +1,40 @@
-# Install Horcrux Core with Docker Compose
+# Run the Horcrux WASM demo with Docker Compose
+
+The Horcrux Core web UI (the same split/unsplit pages as the ESP32 captive
+portal) is published as a static image on GitHub Container Registry (GHCR).
+It runs entirely client-side in the browser and works on Linux, macOS,
+Windows and Raspberry Pi (`amd64`, `arm64`, `arm/v7`).
 
 ## Prerequisites
 
-Install docker and docker-compose:
+Install Docker and the Compose plugin:
 
 ```bash
-# 1. Mettre à jour le système
+# 1. Update the system
 sudo apt update && sudo apt upgrade -y
 
-# 2. Installer Docker
+# 2. Install Docker (bundles the compose plugin)
 curl -fsSL https://get.docker.com | sh
 
-# 3. Activer Docker au démarrage et au groupe utilisateur
+# 3. Enable Docker on boot and add yourself to the docker group
 sudo systemctl enable docker
 sudo usermod -aG docker $USER
 
-# 4. Reconnecte-toi (ou reboot) pour que le groupe docker soit effectif
+# 4. Log out and back in (or reboot) for the group change to take effect
 exit
-# puis reconnecte-toi en SSH
 ```
 
-## Create the `docker-compose.yml` file
+## Choosing an image tag
 
-Create a `docker-compose.yml`:
+The image is tagged to reflect its source:
+
+| Tag | Meaning |
+|-----|---------|
+| `latest` | Latest stable build (`main` or a release tag) |
+| `vX.Y.Z` | A specific release (e.g. `v1.4.1`) |
+| `dev` | Development build (from the `dev/jfi` branch) |
+
+## Create the `docker-compose.yml` file
 
 ```yaml
 services:
@@ -34,32 +46,31 @@ services:
     restart: unless-stopped
 ```
 
-### Identifying the image version
-
-The image is tagged to reflect its source:
-
-| Tag | Meaning |
-|-----|---------|
-| `latest` | Latest stable build (from `main` or a git tag) |
-| `vX.Y.Z` | A specific release (tagged build) |
-| `dev` | Development build (from the `dev` branch) |
-
-Each image also embeds a machine-readable manifest at `/version.json` in the web root, so you can identify the exact source commit and branch:
-
-In your docker-compose.yml, you can choose to pull a specific image by using the following syntax:
-
-```yaml
-image: ghcr.io/ficaud/horcrux-wasm:latest # latest stable build
-image: ghcr.io/ficaud/horcrux-wasm:v1.2.0 # a specific release
-image: ghcr.io/ficaud/horcrux-wasm:dev # development build
-```
+Replace `latest` with a specific tag (e.g. `v1.4.1`) to pin a release.
 
 ## Launch and manage the container
 
 ```bash
+# start in the background
 docker compose up -d
-# update the container
-docker compose pull
-# force recreate the container with the latest image
-docker compose up -d --force-recreate
+# view logs
+docker compose logs -f
+# update to the latest image and recreate the container
+docker compose pull && docker compose up -d --force-recreate
+# stop and remove it
+docker compose down
 ```
+
+Open `http://localhost:8080`.
+
+## Identify the running version
+
+Each image embeds a manifest at `/version.json` and OCI labels:
+
+```bash
+curl http://localhost:8080/version.json
+docker inspect horcrux --format '{{index .Config.Labels "org.opencontainers.image.version"}}'
+```
+
+To build the image locally instead of pulling it, use the
+`docker-compose.yml` at the repository root.
