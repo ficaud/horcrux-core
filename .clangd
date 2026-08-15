@@ -15,9 +15,20 @@ CompileFlags:
   CompilationDatabase: .
   Add:
     - "--target=aarch64-unknown-linux-gnu"
+    # Ensure clangd can always resolve Zephyr headers even when the Xtensa
+    # toolchain (unknown to clangd) prevents it from applying the -I paths
+    # from compile_commands.json.
+    - "-I/workspaces/horcrux/zephyr/include"
+    - "-I/workspaces/horcrux/build-esp32s3/zephyr/include/generated"
+    - "-I/workspaces/horcrux/build-esp32s3/zephyr/include/generated/zephyr"
+    - "-I/workspaces/horcrux/zephyr/lib/libc/picolibc/include"
+    - "-I/workspaces/horcrux/zephyr/lib/libc/common/include"
   Remove:
     - "-mlongcalls"
     - "-fno-printf-return-value"
     - "-fno-reorder-functions"
     - "-fstrict-volatile-bitfields"
+    # The Xtensa sysroot headers are incompatible with the host target clangd
+    # uses; drop it so clangd falls back to its own system headers.
+    - "--sysroot"
 
