@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.1] - 2026-08-15
+
+### added
+- `qr_decode`: added quirc to decode qrcode in pure c for wasm demo pages ([#39](https://github.com/ficaud/horcrux-core/issues/39)).
+- `workflows`: automatic pages and docker triggering when the release has been triggered
+- `tasks.json`: build and serve demo wasm page in the devcontainer /w port forwarding to debug the demo page of see modification without flashing embedded device
+
+### fixed 
+- `index.html`: easier to understand main page note about the horcrux.co address
+- `workflows`: removed most of the automatic master/main branches triggering (which make no sense sometimes).
+
+### changed
+- `c files header`: changed or add GPLv3 license to all c files
+
 ## [1.4.0] - 2026-08-14
 
 ### added
