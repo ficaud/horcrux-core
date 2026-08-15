@@ -54,8 +54,12 @@ image: ghcr.io/ficaud/horcrux-wasm:v1.2.0 # a specific release
 image: ghcr.io/ficaud/horcrux-wasm:dev # development build
 ```
 
-## Launch the container
+## Launch and manage the container
 
 ```bash
 docker compose up -d
+# update the container
+docker compose pull
+# force recreate the container with the latest image
+docker compose up -d --force-recreate
 ```

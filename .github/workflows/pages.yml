@@ -31,6 +31,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+        with:
+          # The demo Makefile compiles external/quirc/*.c, which is a git
+          # submodule. Recurse so it is present in the CI workspace.
+          submodules: recursive
 
       - name: Build WASM with Emscripten
         run: |
@@ -53,6 +57,8 @@ jobs:
           cp demo/scripts/sss.wasm                  pages/scripts/
           cp demo/scripts/qr.js                     pages/scripts/
           cp demo/scripts/qr.wasm                   pages/scripts/
+          cp demo/scripts/qr_decode.js              pages/scripts/
+          cp demo/scripts/qr_decode.wasm            pages/scripts/
           cp src/access-point/assets/scripts/split.js   pages/scripts/
           cp src/access-point/assets/scripts/unsplit.js pages/scripts/
           cp src/access-point/assets/scripts/jsQR.js    pages/scripts/

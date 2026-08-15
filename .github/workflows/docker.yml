@@ -44,6 +44,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+        with:
+          # The demo Makefile compiles external/quirc/*.c, which is a git
+          # submodule. Recurse so it is present in the build context.
+          submodules: recursive
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v4
