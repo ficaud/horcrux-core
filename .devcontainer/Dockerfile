@@ -2,7 +2,7 @@
 
 # Devcontainer for Zephyr RTOS development on ESP32-S3-DevKitC-1
 # Includes: Zephyr SDK (xtensa-esp32s3 toolchain), west, esptool,
-#           Emscripten SDK (WASM demo), clang-format, clangd
+#           Emscripten SDK (WASM demo), clang-format, clangd, opencode
 
 FROM ubuntu:24.04
 
@@ -56,6 +56,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libgmock-dev \
     ripgrep \
     zsh \
+    lsof \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -180,7 +181,7 @@ RUN echo "Cloning Zephyr RTOS ${ZEPHYR_VERSION}..." \
     && echo "Zephyr RTOS ${ZEPHYR_VERSION} installed"
 
 # ------------------------------------------------------------------
-# 6. Neovim and Lazygit (optional developer tools)
+# 6. Neovim, Lazygit and OpenCode (optional developer tools)
 # ------------------------------------------------------------------
 # These downloads are developer conveniences, not required to build or
 # test the firmware. A transient GitHub download failure must NOT abort
@@ -229,6 +230,22 @@ RUN N_ARCH="$(cat /tmp/n_arch.txt)" \
          ; \
        fi \
     && rm -f /tmp/n_arch.txt
+
+# 6c. OpenCode (best-effort; failure is non-fatal for CI)
+# AI coding agent for the terminal. The official installer only writes to
+# $HOME/.opencode/bin, so we run it inside a temporary home and copy the
+# binary to /usr/local/bin to put it on PATH for every user.
+RUN OPENCODE_HOME="$(mktemp -d)" \
+    && echo "Installing OpenCode..." \
+    && if HOME="${OPENCODE_HOME}" bash -c "curl -fsSL https://opencode.ai/install | bash"; then \
+         install -m 0755 "${OPENCODE_HOME}/.opencode/bin/opencode" /usr/local/bin/opencode \
+         && chown ubuntu:ubuntu /usr/local/bin/opencode \
+         && opencode --version \
+         && echo "OpenCode installed"; \
+       else \
+         echo "WARNING: OpenCode install failed; continuing without it"; \
+       fi \
+    && rm -rf "${OPENCODE_HOME}"
 
 # ------------------------------------------------------------------
 # 7. Environment setup
