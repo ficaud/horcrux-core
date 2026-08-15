@@ -6,12 +6,8 @@ name: Pages
 
 on:
   push:
-    branches: [main, master]
-    paths:
-      - '.github/workflows/pages.yml'
-      - 'demo/**'
-      - 'src/access-point/**'
-      - 'src/sss/**'
+    tags:
+      - 'v*'
   workflow_dispatch:
     inputs:
       version:

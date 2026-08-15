@@ -23,17 +23,6 @@ on:
       - 'src/sss/**'
       - 'src/qrcode/**'
       - 'src/svg/**'
-  pull_request:
-    branches: [main, master]
-    paths:
-      - '.github/workflows/docker.yml'
-      - 'docker/**'
-      - 'docker-compose.yml'
-      - 'demo/**'
-      - 'src/access-point/**'
-      - 'src/sss/**'
-      - 'src/qrcode/**'
-      - 'src/svg/**'
   workflow_dispatch:
     inputs:
       version:
