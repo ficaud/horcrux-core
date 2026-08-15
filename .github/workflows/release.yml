@@ -155,9 +155,12 @@ jobs:
           gh workflow run pages.yml \
             --ref "${{ github.ref }}" \
             -f version="${{ steps.version.outputs.tag }}"
-
+        env:
+          GH_TOKEN: ${{ github.token }}
       - name: Trigger Docker workflow
         run: |
           gh workflow run docker.yml \
             --ref "${{ github.ref }}" \
             -f version="${{ steps.version.outputs.tag }}"
+        env:
+          GH_TOKEN: ${{ github.token }}
