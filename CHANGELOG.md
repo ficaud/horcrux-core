@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.4.0] - 2026-08-14
 
 ### added
-- `docker/`: Dockerfile and docker-compose.yml to build a WASM image of horcrux core
+- `docker/`: Dockerfile and docker-compose.yml to build a WASM image of horcrux core ([#28](https://github.com/ficaud/horcrux-core/issues/28)).
 - `readme`: features list section
 
 ### changed
