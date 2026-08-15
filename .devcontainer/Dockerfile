@@ -1,7 +1,8 @@
 # SPDX-License-Identifier: Apache-2.0
 
 # Devcontainer for Zephyr RTOS development on ESP32-S3-DevKitC-1
-# Includes: Zephyr SDK (xtensa-esp32s3 toolchain), west, esptool, clang-format, clangd
+# Includes: Zephyr SDK (xtensa-esp32s3 toolchain), west, esptool,
+#           Emscripten SDK (WASM demo), clang-format, clangd
 
 FROM ubuntu:24.04
 
@@ -139,7 +140,31 @@ RUN ARCH="$(uname -m)" \
     && echo "SDK installed successfully (${TOOLCHAIN_ESP32S3} and ${TOOLCHAIN_ESP32} verified)"
 
 # ------------------------------------------------------------------
-# 4. Zephyr RTOS (v4.4.2)
+# 4. Emscripten SDK (WASM demo toolchain)
+# ------------------------------------------------------------------
+# Installs the Emscripten SDK so the WebAssembly demo (demo/) can be built
+# with `make -C demo`. Uses the official emsdk installer and activates the
+# latest release. The EM_CONFIG is written to the SDK root so emcc works
+# regardless of the active user. The PATH entries mirror what
+# `emsdk_env.sh` would export.
+ENV EMSDK=/opt/emsdk
+ENV EM_CONFIG=/opt/emsdk/.emscripten
+ENV PATH="/opt/emsdk:/opt/emsdk/upstream/emscripten:/opt/emsdk/upstream/bin:${PATH}"
+
+RUN echo "Installing Emscripten SDK..." \
+    && git clone --depth 1 https://github.com/emscripten-core/emsdk.git "${EMSDK}" \
+    && cd "${EMSDK}" \
+    && ./emsdk install latest \
+    && ./emsdk activate latest \
+    # Sanity check: compile a trivial file to pre-populate the system cache
+    && echo 'int main(void) { return 0; }' > /tmp/hello.c \
+    && emcc -c /tmp/hello.c -o /tmp/hello.o \
+    && rm -f /tmp/hello.c /tmp/hello.o \
+    && emcc --version | head -1 \
+    && echo "Emscripten installed"
+
+# ------------------------------------------------------------------
+# 5. Zephyr RTOS (v4.4.2)
 # ------------------------------------------------------------------
 # Pre-downloads the Zephyr RTOS source at version v4.4.2 into the image so
 # the framework is available at build time.  The west manifest (west.yml)
@@ -155,7 +180,7 @@ RUN echo "Cloning Zephyr RTOS ${ZEPHYR_VERSION}..." \
     && echo "Zephyr RTOS ${ZEPHYR_VERSION} installed"
 
 # ------------------------------------------------------------------
-# 5. Neovim and Lazygit (optional developer tools)
+# 6. Neovim and Lazygit (optional developer tools)
 # ------------------------------------------------------------------
 # These downloads are developer conveniences, not required to build or
 # test the firmware. A transient GitHub download failure must NOT abort
@@ -173,7 +198,7 @@ RUN ARCH="$(uname -m)" \
     esac \
     && echo "${N_ARCH}" > /tmp/n_arch.txt
 
-# 5a. Neovim (best-effort; failure is non-fatal for CI)
+# 6a. Neovim (best-effort; failure is non-fatal for CI)
 RUN N_ARCH="$(cat /tmp/n_arch.txt)" \
     && NVIM_URL="https://github.com/neovim/neovim/releases/download/v${NVIM_VERSION}/nvim-linux-${N_ARCH}.tar.gz" \
     && echo "Downloading Neovim ${NVIM_VERSION} for ${N_ARCH}..." \
@@ -189,7 +214,7 @@ RUN N_ARCH="$(cat /tmp/n_arch.txt)" \
          ; \
        fi
 
-# 5b. Lazygit (best-effort; failure is non-fatal for CI)
+# 6b. Lazygit (best-effort; failure is non-fatal for CI)
 RUN N_ARCH="$(cat /tmp/n_arch.txt)" \
     && LAZYGIT_URL="https://github.com/jesseduffield/lazygit/releases/download/v${LAZYGIT_VERSION}/lazygit_${LAZYGIT_VERSION}_Linux_${N_ARCH}.tar.gz" \
     && echo "Downloading Lazygit ${LAZYGIT_VERSION} for ${N_ARCH}..." \
@@ -206,14 +231,14 @@ RUN N_ARCH="$(cat /tmp/n_arch.txt)" \
     && rm -f /tmp/n_arch.txt
 
 # ------------------------------------------------------------------
-# 6. Environment setup
+# 7. Environment setup
 # ------------------------------------------------------------------
 ENV ZEPHYR_TOOLCHAIN_VARIANT=zephyr
 # Zephyr RTOS was pre-downloaded into the image at /opt/zephyr (v4.4.2).
 ENV ZEPHYR_BASE=/opt/zephyr
 
 # ------------------------------------------------------------------
-# 7. Non-root user
+# 8. Non-root user
 # ------------------------------------------------------------------
 ARG USERNAME=vscode
 ARG USER_UID=1000
@@ -238,7 +263,7 @@ RUN groupadd --gid "${USER_GID}" "${USERNAME}" 2>/dev/null || true; \
     chmod 0440 /etc/sudoers.d/sudogroup-nopasswd
 
 # ------------------------------------------------------------------
-# 8. LazyVim (Neovim configuration) — optional developer tooling
+# 9. LazyVim (Neovim configuration) — optional developer tooling
 # ------------------------------------------------------------------
 # Best-effort clone; a transient GitHub failure must not abort the CI build.
 RUN mkdir -p /home/${USERNAME}/.config \
@@ -251,7 +276,7 @@ RUN mkdir -p /home/${USERNAME}/.config \
     && chown -R ${USERNAME}:${USER_GID} /home/${USERNAME}/.config
 
 # ------------------------------------------------------------------
-# 9. Oh My Zsh + plugins (used by the host .zshrc mounted from the MacBook)
+# 10. Oh My Zsh + plugins (used by the host .zshrc mounted from the MacBook)
 # ------------------------------------------------------------------
 # The mounted .zshrc points ZSH="$HOME/.oh-my-zsh" and loads the plugins
 # git, zsh-autosuggestions and zsh-syntax-highlighting.  We install those
@@ -298,7 +323,7 @@ RUN clone_ohmyzsh() { \
     && chown -R ${USERNAME}:${USER_GID} /home/${USERNAME}/.oh-my-zsh
 
 # ------------------------------------------------------------------
-# 10. Make zsh the default shell for the container user
+# 11. Make zsh the default shell for the container user
 # ------------------------------------------------------------------
 RUN chsh -s /usr/bin/zsh ${USERNAME}
 

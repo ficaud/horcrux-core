@@ -51,5 +51,12 @@
   "runArgs": [
     "--privileged",
     "--env-file", "${localWorkspaceFolder}/.env"
-  ]
+  ],
+  "appPort": [8000],
+  "forwardPorts": [8000],
+  "portsAttributes": {
+    "8000": {
+      "label": "Horcrux Demo"
+    }
+  }
 }

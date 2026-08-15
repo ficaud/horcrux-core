@@ -147,6 +147,30 @@
                 "focus": false,
                 "clear": true
             }
+        },
+        {
+            "label": "Build Demo WASM (Makefile)",
+            "type": "shell",
+            "command": "make",
+            "args": [
+                "-C",
+                "demo",
+                "clean",
+                "all"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "group": "build",
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "clear": true
+            }
         }
-    ]
+   ]
 }
