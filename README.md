@@ -55,11 +55,7 @@ You can then join the network in one of two ways:
 <br>
 </div>
 
-2. **Manually connect** by searching for the SSID `Horcrux-XXXX` on your router and connecting with the following password:
-
-```
-ubx7jrd9kje_ZRC8dqt
-```
+2. **Manually connect** by searching for the SSID `Horcrux-XXXX` on your router and connecting with the password derived from your device's MAC address (also shown on below the SSID after flashing the device).
 
 ## SSS settings
 

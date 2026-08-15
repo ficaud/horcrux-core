@@ -9,12 +9,6 @@ config WIFI_SAMPLE_AP_SSID
 	  SSID of the soft AP created by the sample.
 	  Fox example: "SOFT-AP"
 
-config WIFI_SAMPLE_AP_PSK
-	string "Pre-shared key for soft AP"
-	help
-	  WPA2 password used by the soft AP for client authentication.
-	  For example: "PSK"
-
 config WIFI_SAMPLE_SSID
 	string "SSID of the target AP"
 	help
