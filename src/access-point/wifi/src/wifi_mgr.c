@@ -1,4 +1,6 @@
 /**
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ *
  * @file wifi_mgr.c
  *
  * @brief Wi-Fi Access Point management and event handling.

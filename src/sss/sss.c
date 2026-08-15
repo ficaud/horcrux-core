@@ -1,4 +1,6 @@
 /**
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ *
  * @file sss.c
  *
  * @brief Shamir's Secret Sharing (SSS) implementation over GF(256).

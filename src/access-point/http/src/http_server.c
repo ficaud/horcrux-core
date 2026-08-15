@@ -1,4 +1,6 @@
 /*
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ *
  * HTTP Server — serves the captive portal pages.
  * Delegates routing to the router module and content to the handlers module.
  */

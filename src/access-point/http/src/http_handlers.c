@@ -1,4 +1,6 @@
 /**
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ *
  * @file http_handlers.c
  *
  * @brief HTTP request handlers for the captive portal.

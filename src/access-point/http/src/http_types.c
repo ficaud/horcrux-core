@@ -1,4 +1,6 @@
 /**
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ *
  * @file http_types.c
  *
  * @brief HTTP response table definition for the captive portal.

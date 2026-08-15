@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# SPDX-License-Identifier: Apache-2.0
+# SPDX-License-Identifier: GPL-3.0-or-later
 #
 # Télécharge les blobs binaires Espressif nécessaires au driver Wi-Fi ESP32.
 set -euo pipefail

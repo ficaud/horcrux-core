@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: GPL-3.0-or-later
 //
 // WASM entry point — exposes QR code decoding (via quirc) to JavaScript.
 //
@@ -9,7 +9,6 @@
 #include "qr_decode.h"
 
 #include <stdint.h>
-#include <stdlib.h>
 
 /**
  * @brief Decode a QR code from a grayscale image.

@@ -1,5 +1,5 @@
 /*
- * SPDX-License-Identifier: Apache-2.0
+ * SPDX-License-Identifier: GPL-3.0-or-later
  *
  * Stub header for Zephyr's <zephyr/random/random.h>.
  * Used when compiling the horcrux-connect sss.c outside Zephyr
