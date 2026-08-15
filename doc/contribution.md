@@ -85,3 +85,15 @@ Each suite is a standalone executable under `build/tests/tests/`:
 # Multiple filters
 ./build/tests/tests/qrcode_test --gtest_filter='QRCodeTest.Encode*:QRCodeTest.Share*'
 ```
+
+## Local WASM demo server
+
+You can build the WASM demo server using the task: `Build Demo WASM (Makefile)`.
+
+Then you can run the server on the devcontainer through the port forwaring feautre (8000):
+
+```bash
+cd /workspaces/horcrux/ && python3 demo/serve.py
+```
+
+Connect to it : `http://localhost:8000`

@@ -8,7 +8,20 @@
 # JS (split.js, unsplit.js) can load the modules from the same directory.
 # HTML pages are served from ../src/access-point/assets/.
 
-EMCC = emcc
+# Locate the Emscripten compiler. Prefer `emcc` already on PATH, otherwise fall
+# back to a locally-installed emsdk (e.g. ~/emsdk or /opt/emsdk) so the demo
+# builds even in shells that have not sourced emsdk_env.sh.
+EMCC ?= $(shell command -v emcc 2>/dev/null || \
+    for d in $$HOME/emsdk/upstream/emscripten/emcc \
+             /opt/emsdk/upstream/emscripten/emcc \
+             /emsdk/upstream/emscripten/emcc; do \
+        [ -x "$$d" ] && { echo "$$d"; break; }; \
+    done)
+
+# If EMCC is still empty, fall back to a bare `emcc` so the error message is
+# the familiar "emcc: No such file or directory".
+EMCC := $(if $(EMCC),$(EMCC),emcc)
+
 CFLAGS = -O3 -flto
 WASM_FLAGS = \
 	-s MODULARIZE=1 \
