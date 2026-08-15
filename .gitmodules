@@ -1,3 +1,6 @@
 [submodule "external/sss"]
 	path = external/sss
 	url = https://github.com/dsprenkels/sss.git
+[submodule "external/quirc"]
+	path = external/quirc
+	url = https://github.com/dlbeer/quirc.git
