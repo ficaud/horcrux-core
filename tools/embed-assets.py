@@ -41,7 +41,7 @@ def read_file(path: str) -> bytes:
         return f.read()
 
 
-def build_page(html_raw: str, css_raw: str | None, assets_dir: str) -> str:
+def build_page(html_raw: str, css_raw: str | None, assets_dir: str, qr_max_dim: int, server_decode: bool) -> str:
     """Inline CSS and JS into HTML, then wrap with HTTP response headers."""
     if css_raw is not None:
         html_raw = html_raw.replace('<link rel="stylesheet" href="style.css">',
@@ -49,8 +49,18 @@ def build_page(html_raw: str, css_raw: str | None, assets_dir: str) -> str:
         html_raw = html_raw.replace("<link rel='stylesheet' href='style.css'>",
                                     f'<style>\n{css_raw}\n</style>')
 
-    # Inline JavaScript files: <script src="scripts/foo.js"></script>
+    # On boards without on-device decoding (classic ESP32), the page decodes
+    # locally with jsQR: inline it right before unsplit.js so it is defined
+    # when unsplit.js runs. On ESP32-S3 the device decodes, so jsQR stays out.
     import re
+    if not server_decode:
+        html_raw = re.sub(
+            r'(<script\s+src="scripts/unsplit\.js[^"]*"\s*></script>)',
+            '<script src="scripts/jsQR.js"></script>\n\\1',
+            html_raw,
+        )
+
+    # Inline JavaScript files: <script src="scripts/foo.js"></script>
     from urllib.parse import urlparse
     def inline_js(match):
         src = match.group(1)
@@ -68,6 +78,15 @@ def build_page(html_raw: str, css_raw: str | None, assets_dir: str) -> str:
         html_raw,
     )
 
+    # Bake the per-board settings into the page:
+    # - __QR_MAX_DIM__: max grayscale dimension for on-device decode. In the
+    #   WASM demo (raw files, no substitution) the placeholder remains, so
+    #   unsplit.js falls back to its default of 224.
+    # - __QR_DECODE_SERVER__: 1 when the device decodes (ESP32-S3), 0 when the
+    #   page must decode locally with jsQR (classic ESP32).
+    html_raw = html_raw.replace('__QR_MAX_DIM__', str(qr_max_dim))
+    html_raw = html_raw.replace('__QR_DECODE_SERVER__', '1' if server_decode else '0')
+
     return (
         "HTTP/1.1 200 OK\r\n"
         "Content-Type: text/html\r\n"
@@ -78,12 +97,21 @@ def build_page(html_raw: str, css_raw: str | None, assets_dir: str) -> str:
 
 
 def main():
-    if len(sys.argv) != 3:
-        print(f"Usage: {sys.argv[0]} <assets_dir> <output.h>", file=sys.stderr)
-        sys.exit(1)
+    import argparse
 
-    assets_dir = sys.argv[1]
-    output_path = sys.argv[2]
+    parser = argparse.ArgumentParser(description='Embed assets into a C header.')
+    parser.add_argument('--qr-max-dim', type=int, default=224,
+                        help='Maximum QR decode image dimension (px) baked into the page.')
+    parser.add_argument('--qr-decode-server', type=int, default=1, choices=(0, 1),
+                        help='1 if the device decodes QR codes (quirc), 0 if the page decodes locally (jsQR).')
+    parser.add_argument('assets_dir', help='Directory containing the HTML/CSS/JS assets.')
+    parser.add_argument('output', help='Output C header path.')
+    args = parser.parse_args()
+
+    assets_dir = args.assets_dir
+    output_path = args.output
+    qr_max_dim = args.qr_max_dim
+    server_decode = bool(args.qr_decode_server)
 
     # Read CSS once — shared by all pages
     css_path = os.path.join(assets_dir, 'style.css')
@@ -112,7 +140,7 @@ def main():
                 continue
 
             html_raw = read_file(html_path).decode('utf-8')
-            http_response = build_page(html_raw, css_raw, assets_dir)
+            http_response = build_page(html_raw, css_raw, assets_dir, qr_max_dim, server_decode)
             escaped = escape_c_string(http_response.encode('utf-8'))
             f.write(f'#define {macro_name} "{escaped}"\n\n')
 

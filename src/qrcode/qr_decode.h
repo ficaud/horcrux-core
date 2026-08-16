@@ -18,8 +18,13 @@ extern "C"
 // ===========================================================================
 /** Maximum supported image dimension (pixels) per side. */
 /** Maximum image dimension (px) accepted for decoding. Kept small so the
- *  image buffer plus quirc's internal state fit in the ESP32's 64 KB heap. */
+ *  image buffer plus quirc's internal state fit in the device's RAM budget.
+ *  The firmware build overrides this with the per-board Kconfig value
+ *  HORCRUX_QR_DECODE_MAX_DIM (224 on ESP32-S3, 192 on the classic ESP32).
+ *  WASM demo and native tests keep the 224 default. */
+#ifndef QR_DECODE_MAX_DIM
 #define QR_DECODE_MAX_DIM (224)
+#endif
 
 /** Maximum number of pixels (width * height) for a decodable image. */
 #define QR_DECODE_MAX_PIXELS (QR_DECODE_MAX_DIM * QR_DECODE_MAX_DIM)
@@ -84,10 +89,13 @@ uint8_t *qr_decode_buffer(struct qr_decode_ctx *ctx);
  * @param ctx[in]      Decoder context from qr_decode_begin().
  * @param out[out]     Buffer for the decoded payload (null-terminated).
  * @param out_size[in] Size of the output buffer.
+ * @param grids_out[out] Optional. Receives the number of QR grids quirc
+ *                      identified (0 means no QR code was found at all).
+ *                      May be NULL.
  *
  * @return The payload length on success (>= 0), or a negative value on error.
  */
-int qr_decode_commit(struct qr_decode_ctx *ctx, char *out, size_t out_size);
+int qr_decode_commit(struct qr_decode_ctx *ctx, char *out, size_t out_size, int *grids_out);
 
 /**
  * @brief Release a decoder context created by qr_decode_begin().

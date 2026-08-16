@@ -24,7 +24,8 @@
 
     /* ── QR decode WASM bootstrap (quirc) ──
        Only present in the WASM demo. On the embedded device qr_decode.js does
-       not exist, so script.onerror fires and we fall back to jsQR. ── */
+       not exist, so script.onerror fires and decoding is done on-device via
+       POST /qr_decode. In the demo the WASM module is the local fallback. ── */
     var qrDecodeModule = null;
 
     (function () {
@@ -33,11 +34,11 @@
         script.onload = function () {
             QRDecodeWasm().then(function (m) {
                 qrDecodeModule = m;
-                console.log('[horcrux] QR decoder: quirc (WASM)');
+                console.log('[horcrux] QR decoder: quirc (WASM) available as fallback');
             });
         };
         script.onerror = function () {
-            console.log('[horcrux] QR decoder: jsQR (fallback)');
+            console.log('[horcrux] QR decoder: on-device (POST /qr_decode)');
         };
         document.head.appendChild(script);
     })();
@@ -223,11 +224,17 @@
         }
     }
 
-    /* ── Grayscale + WASM decode helpers (quirc) ──
-       Draw a source (image or video) onto the canvas, produce a grayscale
-       Uint8Array (one byte per pixel). If the WASM quirc module is loaded,
-       decode with it; otherwise fall back to jsQR. ── */
-    var QR_CLIENT_MAX_DIM = 224;
+    /* ── QR decode ──
+       The embedded firmware replaces the placeholders with per-board values:
+       - __QR_MAX_DIM__: max grayscale dimension accepted by the device
+         (224 on ESP32-S3, 192 on the classic ESP32). In the WASM demo the
+         placeholder stays, so parseInt() yields NaN and we use 224.
+       - __QR_DECODE_SERVER__: 1 when the ESP32 decodes (ESP32-S3), 0 when
+         the page must decode locally (classic ESP32 / WASM demo).
+       Local decoding uses WASM quirc (demo) or jsQR (classic ESP32). ── */
+    var QR_CLIENT_MAX_DIM = parseInt('__QR_MAX_DIM__', 10) || 224;
+    var QR_DECODE_SERVER  = parseInt('__QR_DECODE_SERVER__', 10) === 1;
+    var QR_SCAN_INTERVAL_MS = 250;
 
     function drawToGray(src, naturalW, naturalH) {
         var scale = Math.min(1, QR_CLIENT_MAX_DIM / Math.max(naturalW, naturalH));
@@ -249,6 +256,26 @@
         return { gray: gray, w: w, h: h };
     }
 
+    /* ── Device decode (ESP32-S3): POST the grayscale frame to /qr_decode,
+       where quirc runs on-device. ── */
+    function decodeWithServer(gray, w, h) {
+        if (!gray || !w || !h) return Promise.resolve(null);
+        return fetch('/qr_decode?w=' + w + '&h=' + h, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/octet-stream' },
+            body: gray
+        })
+            .then(function (r) {
+                if (!r.ok) return null;
+                return r.json().then(function (j) {
+                    if (j && typeof j.payload === 'string' && j.payload) return j.payload;
+                    return null;
+                });
+            })
+            .catch(function () { return null; });
+    }
+
+    /* ── Local decode: WASM quirc (demo) or jsQR (classic ESP32). ── */
     function decodeWithWasm(gray, w, h) {
         if (!qrDecodeModule || !qrDecodeModule._wasm_qr_decode) return null;
 
@@ -274,36 +301,110 @@
         return text;
     }
 
-    function startQRScan() {
-        // Report which decoder is active so the user knows the code path.
-        if (qrStatus) {
-            qrStatus.textContent = qrDecodeModule
-                ? 'Point the camera at a QR code (quirc/WASM)'
-                : 'Point the camera at a QR code (jsQR)';
-        }
+    /* jsQR is rotation-sensitive, so sweep over scales and rotations. */
+    function decodeWithJsQR(src, iw, ih) {
+        var targets = [1000, 1500, 600, 400];
+        var steps = [
+            { dw: iw,  dh: ih,  angle: 0,            tx: 0,   ty: 0   },
+            { dw: ih,  dh: iw,  angle:  Math.PI / 2,  tx: ih,  ty: 0   },
+            { dw: iw,  dh: ih,  angle:  Math.PI,      tx: iw,  ty: ih  },
+            { dw: ih,  dh: iw,  angle: -Math.PI / 2,  tx: 0,   ty: iw  }
+        ];
 
-        function tick() {
-            if (qrVideo.readyState >= qrVideo.HAVE_ENOUGH_DATA && qrVideo.videoWidth > 0) {
-                var frame = drawToGray(qrVideo, qrVideo.videoWidth, qrVideo.videoHeight);
+        for (var si = 0; si < steps.length; si++) {
+            var s = steps[si];
+            for (var ti = 0; ti < targets.length; ti++) {
+                var longSide = Math.max(s.dw, s.dh);
+                var scale = Math.min(1, targets[ti] / longSide);
+                var w = Math.round(s.dw * scale);
+                var h = Math.round(s.dh * scale);
+                if (w < 60 || h < 60) continue;
 
-                var text = null;
-                if (qrDecodeModule) {
-                    text = decodeWithWasm(frame.gray, frame.w, frame.h);
-                } else {
-                    // Fallback: jsQR on the full-size frame.
-                    var w = qrVideo.videoWidth, h = qrVideo.videoHeight;
-                    qrCanvas.width = w; qrCanvas.height = h;
+                qrCanvas.width  = w;
+                qrCanvas.height = h;
+                qrCtx.imageSmoothingEnabled = (scale > 0.5);
+
+                if (s.angle === 0) {
                     qrCtx.setTransform(1, 0, 0, 1, 0, 0);
-                    qrCtx.drawImage(qrVideo, 0, 0, w, h);
-                    var code = jsQR(qrCtx.getImageData(0, 0, w, h).data, w, h,
-                        { inversionAttempts: 'attemptBoth' });
-                    if (code && code.data) text = code.data;
+                    qrCtx.drawImage(src, 0, 0, w, h);
+                } else {
+                    qrCtx.setTransform(
+                         Math.cos(s.angle) * scale, Math.sin(s.angle) * scale,
+                        -Math.sin(s.angle) * scale, Math.cos(s.angle) * scale,
+                        s.tx * scale, s.ty * scale
+                    );
+                    qrCtx.drawImage(src, 0, 0);
                 }
 
-                if (text) {
-                    stopQRScan();
-                    fillShareFromQR(text.trim());
-                    return;
+                var code = jsQR(
+                    qrCtx.getImageData(0, 0, w, h).data, w, h,
+                    { inversionAttempts: 'attemptBoth' }
+                );
+                if (code && code.data) return code.data.trim();
+            }
+        }
+        return null;
+    }
+
+    /* Sync local decode from a source element (camera frame or image). */
+    function decodeLocal(src, naturalW, naturalH) {
+        if (qrDecodeModule) {
+            var frame = drawToGray(src, naturalW, naturalH);
+            return decodeWithWasm(frame.gray, frame.w, frame.h);
+        }
+        if (typeof jsQR === 'function') {
+            return decodeWithJsQR(src, naturalW, naturalH);
+        }
+        return null;
+    }
+
+    /* Async: device first (ESP32-S3), WASM fallback (demo). */
+    function decodeGray(gray, w, h) {
+        if (QR_DECODE_SERVER) {
+            return decodeWithServer(gray, w, h).then(function (text) {
+                if (text) return text;
+                if (qrDecodeModule) return decodeWithWasm(gray, w, h);
+                return null;
+            });
+        }
+        return Promise.resolve(null);
+    }
+
+    function startQRScan() {
+        if (qrStatus) {
+            qrStatus.textContent = 'Point the camera at a QR code';
+        }
+
+        var lastScanTime = 0;
+        var scanInFlight = false;
+
+        // On the ESP32-S3 the ~50 KB uploads are throttled (~250 ms) so they
+        // do not saturate the AP link, and requests never stack up.
+        function tick() {
+            if (!scanInFlight && qrVideo.readyState >= qrVideo.HAVE_ENOUGH_DATA && qrVideo.videoWidth > 0) {
+                var now = Date.now();
+                if (now - lastScanTime >= QR_SCAN_INTERVAL_MS) {
+                    lastScanTime = now;
+                    var vw = qrVideo.videoWidth, vh = qrVideo.videoHeight;
+
+                    if (QR_DECODE_SERVER) {
+                        var frame = drawToGray(qrVideo, vw, vh);
+                        scanInFlight = true;
+                        decodeGray(frame.gray, frame.w, frame.h).then(function (text) {
+                            scanInFlight = false;
+                            if (text) {
+                                stopQRScan();
+                                fillShareFromQR(text.trim());
+                            }
+                        });
+                    } else {
+                        var text = decodeLocal(qrVideo, vw, vh);
+                        if (text) {
+                            stopQRScan();
+                            fillShareFromQR(text.trim());
+                            return;
+                        }
+                    }
                 }
             }
             qrAnim = requestAnimationFrame(tick);
@@ -333,9 +434,10 @@
         var img = new Image();
         img.onload = function () {
             URL.revokeObjectURL(url);
-            var text = decodeFromImg(img);
-            if (text) { fillShareFromQR(text); }
-            else { showToast('No QR code found — try a clearer photo'); }
+            decodeFromImg(img).then(function (text) {
+                if (text) { fillShareFromQR(text); }
+                else { showToast('No QR code found — try a clearer photo'); }
+            });
         };
         img.onerror = function () {
             URL.revokeObjectURL(url);
@@ -345,64 +447,17 @@
     });
 
     /* ── File / gallery decode ──
-       If the WASM quirc module is loaded, decode the grayscale image directly
-       (quirc handles rotation natively, so a single pass is enough). Otherwise
-       fall back to the jsQR multi-scale × 4-rotation sweep. ── */
+        Decode on the device (/qr_decode) when available (ESP32-S3), otherwise
+        decode locally (WASM quirc demo / jsQR on the classic ESP32). ── */
     function decodeFromImg(img) {
         var iw = img.naturalWidth, ih = img.naturalHeight;
-        if (!iw || !ih) return null;
+        if (!iw || !ih) return Promise.resolve(null);
 
-        // WASM quirc path — single grayscale pass.
-        if (qrDecodeModule) {
+        if (QR_DECODE_SERVER) {
             var frame = drawToGray(img, iw, ih);
-            return decodeWithWasm(frame.gray, frame.w, frame.h);
+            return decodeGray(frame.gray, frame.w, frame.h);
         }
-
-        // Fallback: jsQR multi-scale × 4-rotation sweep.
-        var targets = [1000, 1500, 600, 400];
-
-        // { drawWidth, drawHeight, rotation-radians, translateX, translateY }
-        var steps = [
-            { dw: iw,  dh: ih,  angle: 0,            tx: 0,   ty: 0   },
-            { dw: ih,  dh: iw,  angle:  Math.PI / 2,  tx: ih,  ty: 0   },
-            { dw: iw,  dh: ih,  angle:  Math.PI,      tx: iw,  ty: ih  },
-            { dw: ih,  dh: iw,  angle: -Math.PI / 2,  tx: 0,   ty: iw  }
-        ];
-
-        for (var si = 0; si < steps.length; si++) {
-            var s = steps[si];
-            for (var ti = 0; ti < targets.length; ti++) {
-                var longSide = Math.max(s.dw, s.dh);
-                var scale = Math.min(1, targets[ti] / longSide);
-                var w = Math.round(s.dw * scale);
-                var h = Math.round(s.dh * scale);
-                if (w < 60 || h < 60) continue;
-
-                // Resize canvas for this specific rotation + scale.
-                qrCanvas.width  = w;
-                qrCanvas.height = h;
-                qrCtx.imageSmoothingEnabled = (scale > 0.5);
-
-                if (s.angle === 0) {
-                    qrCtx.setTransform(1, 0, 0, 1, 0, 0);
-                    qrCtx.drawImage(img, 0, 0, w, h);
-                } else {
-                    qrCtx.setTransform(
-                         Math.cos(s.angle) * scale, Math.sin(s.angle) * scale,
-                        -Math.sin(s.angle) * scale, Math.cos(s.angle) * scale,
-                        s.tx * scale, s.ty * scale
-                    );
-                    qrCtx.drawImage(img, 0, 0);
-                }
-
-                var code = jsQR(
-                    qrCtx.getImageData(0, 0, w, h).data, w, h,
-                    { inversionAttempts: 'attemptBoth' }
-                );
-                if (code && code.data) return code.data.trim();
-            }
-        }
-        return null;
+        return Promise.resolve(decodeLocal(img, iw, ih));
     }
 
     function fillShareFromQR(text) {

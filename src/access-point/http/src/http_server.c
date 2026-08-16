@@ -11,6 +11,7 @@
 #include <zephyr/logging/log.h>
 #include <zephyr/net/socket.h>
 
+#include "http_handlers.h"
 #include "http_router.h"
 #include "http_types.h"
 #include "page_captive.h"
@@ -150,7 +151,23 @@ static void http_thread_fn(void *arg1, void *arg2, void *arg3)
             /* Parse + dispatch */
             if (router_parse(&req, rx_buf, total) == 0)
             {
-                response = router_dispatch(&req);
+                if (strcmp(req.path, "/qr_decode") == 0)
+                {
+#if defined(CONFIG_HORCRUX_QR_DECODE_SERVER)
+                    /* Streaming QR decode: the grayscale body is read directly
+                     * into quirc's image buffer while it is still arriving. */
+                    LOG_INF("POST /qr_decode -> streaming decode");
+                    response = handler_qr_decode_stream(&req, rx_buf, client_fd);
+#else
+                    /* On-device decoding is not compiled in (e.g. the classic
+                     * ESP32 lacks the RAM); the web page decodes locally. */
+                    response = http_responses_list[HTTP_RESPONSE_NOT_FOUND];
+#endif
+                }
+                else
+                {
+                    response = router_dispatch(&req);
+                }
             }
             else
             {

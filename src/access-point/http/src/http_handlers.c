@@ -16,8 +16,15 @@
 
 #include <zephyr/logging/log.h>
 
+#if defined(CONFIG_HORCRUX_QR_DECODE_SERVER)
+#include <zephyr/net/socket.h>
+#endif
+
 #include "http_types.h"
 #include "page_captive.h"
+#if defined(CONFIG_HORCRUX_QR_DECODE_SERVER)
+#include "qr_decode.h"
+#endif
 #include "qr_encode.h"
 #include "qrcode_to_svg.h"
 #include "sss.h"
@@ -143,6 +150,26 @@ static int count_tokens(const char *s);
  * @return 0 on success, -1 if not found.
  */
 static int get_token(const char *s, int index, char *out, size_t out_size);
+
+#if defined(CONFIG_HORCRUX_QR_DECODE_SERVER)
+/**
+ * @brief Build the JSON HTTP response for a decoded QR payload.
+ *
+ * The payload is ASCII share text ("x:hex..."); the two JSON-sensitive
+ * characters (double quote and backslash) are escaped defensively. The JSON
+ * body is written into @p body and the complete response (status line +
+ * headers + body) into a static buffer that stays valid until the next call.
+ *
+ * @param payload_len[in] Payload length in bytes.
+ * @param payload[in]     Decoded payload bytes.
+ * @param body[out]       Buffer receiving the JSON body.
+ * @param body_size[in]   Size of @p body in bytes.
+ *
+ * @return The full HTTP response string (static), or the 500 response if the
+ *         payload does not fit in @p body.
+ */
+static const char *handler_qr_decode_json_response(int payload_len, const char *payload, char *body, size_t body_size);
+#endif /* CONFIG_HORCRUX_QR_DECODE_SERVER */
 // ===========================================================================
 // Public functions definition
 // ===========================================================================
@@ -301,6 +328,195 @@ const char *handler_reconstruct(const struct http_request *req)
 exit:
     return (ret);
 }
+
+const char *handler_qr_svg(const struct http_request *req)
+{
+    const char *ret = http_responses_list[HTTP_RESPONSE_BAD_REQUEST];
+    static char svg_buf[QR_SVG_BUF_SIZE];
+    static uint8_t qr_temp[qrcodegen_BUFFER_LEN_MAX];
+    static uint8_t qr_code[qrcodegen_BUFFER_LEN_MAX];
+    static char text_buf[1024];
+
+    /* Extract "text" query parameter, default to "hello world" */
+    const char *text;
+    char raw_text[1024];
+    if (get_query_param(req->query, "text", raw_text, sizeof(raw_text)) == 0)
+    {
+        url_decode(text_buf, raw_text, sizeof(text_buf));
+        text = text_buf;
+    }
+    else
+    {
+        ret = http_responses_list[HTTP_RESPONSE_BAD_REQUEST];
+        goto exit;
+    }
+
+    /* Generate the QR Code (ECC LOW, mask AUTO, versions 1-40) */
+    bool ok = qrcodegen_encodeText(text, qr_temp, qr_code);
+    if (!ok)
+    {
+        ret = http_responses_list[HTTP_RESPONSE_QR_CODE_GENERATION_FAILED];
+        goto exit;
+    }
+
+    /* Write the HTTP response headers */
+    int n = snprintf(svg_buf,
+                     sizeof(svg_buf),
+                     "HTTP/1.1 200 OK\r\n"
+                     "Content-Type: image/svg+xml\r\n"
+                     "Connection: close\r\n"
+                     "\r\n");
+    if (n < 0 || (size_t)n >= sizeof(svg_buf))
+    {
+        ret = http_responses_list[HTTP_RESPONSE_QR_CODE_GENERATION_FAILED];
+        goto exit;
+    }
+
+    /* Render the QR code as a pure SVG document, appended after the headers */
+    if (qrcode_to_svg(qr_code, qrcodegen_getSize(qr_code), svg_buf + n, sizeof(svg_buf) - n) < 0)
+    {
+        ret = http_responses_list[HTTP_RESPONSE_QR_CODE_GENERATION_FAILED];
+        goto exit;
+    }
+
+    ret = svg_buf;
+
+exit:
+    return (ret);
+}
+
+#if defined(CONFIG_HORCRUX_QR_DECODE_SERVER)
+const char *handler_qr_decode_stream(const struct http_request *req, const char *raw, int client_fd)
+{
+    const char *ret = http_responses_list[HTTP_RESPONSE_BAD_REQUEST];
+    char w_buf[8];
+    char h_buf[8];
+
+    /* Image dimensions come from the query string. */
+    if (get_query_param(req->query, "w", w_buf, sizeof(w_buf)) != 0 ||
+        get_query_param(req->query, "h", h_buf, sizeof(h_buf)) != 0)
+    {
+        LOG_WRN("QR decode: missing w/h");
+        goto exit;
+    }
+
+    long w = strtol(w_buf, NULL, 10);
+    long h = strtol(h_buf, NULL, 10);
+    if (w < 1 || h < 1 || w > QR_DECODE_MAX_DIM || h > QR_DECODE_MAX_DIM)
+    {
+        LOG_WRN("QR decode: invalid dimensions %ldx%ld (max %d)", w, h, QR_DECODE_MAX_DIM);
+        goto exit;
+    }
+
+    LOG_INF("QR decode: request %ldx%ld", w, h);
+
+    /* Content-Length tells us how many body bytes to expect. */
+    const char *cl = strstr(raw, "Content-Length:");
+    if (cl == NULL)
+    {
+        LOG_WRN("QR decode: missing Content-Length");
+        goto exit;
+    }
+    cl += strlen("Content-Length:");
+    while (*cl == ' ' || *cl == '\t')
+    {
+        cl++;
+    }
+    long content_len = strtol(cl, NULL, 10);
+    size_t pixels = (size_t)w * (size_t)h;
+    if (content_len <= 0 || (size_t)content_len > pixels)
+    {
+        ret = http_responses_list[HTTP_RESPONSE_PAYLOAD_TOO_LARGE];
+        LOG_WRN("QR decode: body too large (%ld bytes for %zu pixels)", content_len, pixels);
+        goto exit;
+    }
+
+    LOG_INF("QR decode: body %ld bytes (%zu pixels)", content_len, pixels);
+
+    /* Allocate quirc and stream the body straight into its image buffer. */
+    struct qr_decode_ctx *ctx = qr_decode_begin((int)w, (int)h);
+    if (ctx == NULL)
+    {
+        ret = http_responses_list[HTTP_RESPONSE_INTERNAL_SERVER_ERROR];
+        LOG_ERR("QR decode: out of memory allocating %lux%lu image", (unsigned long)w, (unsigned long)h);
+        goto exit;
+    }
+
+    uint8_t *img = qr_decode_buffer(ctx);
+    if (img == NULL)
+    {
+        qr_decode_destroy(ctx);
+        ret = http_responses_list[HTTP_RESPONSE_INTERNAL_SERVER_ERROR];
+        LOG_ERR("QR decode: failed to get image buffer");
+        goto exit;
+    }
+
+    size_t written = 0;
+
+    /* Body bytes that already arrived with the headers. */
+    if (req->body != NULL && req->body_len > 0)
+    {
+        size_t n = req->body_len;
+        if (n > (size_t)content_len)
+        {
+            n = (size_t)content_len;
+        }
+        memcpy(img, req->body, n);
+        written = n;
+    }
+
+    /* Bound the body read: if the upload stalls or the client aborts, return
+     * instead of blocking the single-threaded HTTP server forever. Requires
+     * CONFIG_NET_CONTEXT_RCVTIMEO=y or SO_RCVTIMEO is silently ignored. */
+    struct timeval tv = {
+        .tv_sec = 10,
+        .tv_usec = 0,
+    };
+    zsock_setsockopt(client_fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+
+    /* Read the remainder of the body directly into the image buffer. */
+    LOG_INF("QR decode: reading body...");
+    while (written < (size_t)content_len)
+    {
+        int n = zsock_recv(client_fd, img + written, (size_t)content_len - written, 0);
+        if (n <= 0)
+        {
+            break;
+        }
+        written += (size_t)n;
+    }
+
+    LOG_INF("QR decode: read %lu/%ld bytes", (unsigned long)written, content_len);
+
+    if (written < (size_t)content_len)
+    {
+        LOG_WRN("QR decode: incomplete body (%lu/%ld bytes)", (unsigned long)written, content_len);
+    }
+
+    /* Finish the decode. */
+    static char out[QR_DECODE_MAX_PAYLOAD];
+    int grids = 0;
+    LOG_INF("QR decode: decoding...");
+    int dec = qr_decode_commit(ctx, out, sizeof(out), &grids);
+    qr_decode_destroy(ctx);
+    LOG_INF("QR decode: decode returned %d (%d grid(s) found)", dec, grids);
+
+    if (dec < 0)
+    {
+        ret = http_responses_list[HTTP_RESPONSE_UNPROCESSABLE_ENTITY];
+        LOG_INF("QR decode: no QR code found in %lu bytes (%d grid(s))", (unsigned long)written, grids);
+        goto exit;
+    }
+
+    LOG_INF("QR decode: ok, %d bytes payload", dec);
+
+    static char body[QR_DECODE_MAX_PAYLOAD + 32];
+    ret = handler_qr_decode_json_response(dec, out, body, sizeof(body));
+
+exit:
+    return (ret);
+}
+#endif /* CONFIG_HORCRUX_QR_DECODE_SERVER */
 
 // ===========================================================================
 // Static functions
@@ -590,58 +806,54 @@ static int get_token(const char *s, int index, char *out, size_t out_size)
     }
 }
 
-const char *handler_qr_svg(const struct http_request *req)
+#if defined(CONFIG_HORCRUX_QR_DECODE_SERVER)
+static const char *handler_qr_decode_json_response(int payload_len, const char *payload, char *body, size_t body_size)
 {
-    const char *ret = http_responses_list[HTTP_RESPONSE_BAD_REQUEST];
-    static char svg_buf[QR_SVG_BUF_SIZE];
-    static uint8_t qr_temp[qrcodegen_BUFFER_LEN_MAX];
-    static uint8_t qr_code[qrcodegen_BUFFER_LEN_MAX];
-    static char text_buf[1024];
+    static char http_resp[4096];
+    char *p = body;
+    size_t room = body_size;
+    int n;
 
-    /* Extract "text" query parameter, default to "hello world" */
-    const char *text;
-    char raw_text[1024];
-    if (get_query_param(req->query, "text", raw_text, sizeof(raw_text)) == 0)
+    n = snprintf(p, room, "{\"payload\":\"");
+    if (n > 0)
     {
-        url_decode(text_buf, raw_text, sizeof(text_buf));
-        text = text_buf;
-    }
-    else
-    {
-        ret = http_responses_list[HTTP_RESPONSE_BAD_REQUEST];
-        goto exit;
+        p += n;
+        room -= (size_t)n;
     }
 
-    /* Generate the QR Code (ECC LOW, mask AUTO, versions 1-40) */
-    bool ok = qrcodegen_encodeText(text, qr_temp, qr_code);
-    if (!ok)
+    for (int i = 0; i < payload_len && room > 0; i++)
     {
-        ret = http_responses_list[HTTP_RESPONSE_QR_CODE_GENERATION_FAILED];
-        goto exit;
+        unsigned char c = (unsigned char)payload[i];
+        if (c == '"' || c == '\\')
+        {
+            if (room < 2)
+            {
+                break;
+            }
+            *p++ = '\\';
+            *p++ = (char)c;
+            room -= 2;
+        }
+        else if (c >= 0x20 && c < 0x7f)
+        {
+            *p++ = (char)c;
+            room--;
+        }
     }
 
-    /* Write the HTTP response headers */
-    int n = snprintf(svg_buf,
-                     sizeof(svg_buf),
-                     "HTTP/1.1 200 OK\r\n"
-                     "Content-Type: image/svg+xml\r\n"
-                     "Connection: close\r\n"
-                     "\r\n");
-    if (n < 0 || (size_t)n >= sizeof(svg_buf))
+    if (room < 2)
     {
-        ret = http_responses_list[HTTP_RESPONSE_QR_CODE_GENERATION_FAILED];
-        goto exit;
+        return http_responses_list[HTTP_RESPONSE_INTERNAL_SERVER_ERROR];
     }
 
-    /* Render the QR code as a pure SVG document, appended after the headers */
-    if (qrcode_to_svg(qr_code, qrcodegen_getSize(qr_code), svg_buf + n, sizeof(svg_buf) - n) < 0)
+    n = snprintf(p, room, "\"}");
+    if (n > 0)
     {
-        ret = http_responses_list[HTTP_RESPONSE_QR_CODE_GENERATION_FAILED];
-        goto exit;
+        p += n;
     }
 
-    ret = svg_buf;
-
-exit:
-    return (ret);
+    size_t body_len = (size_t)(p - body);
+    snprintf(http_resp, sizeof(http_resp), http_responses_list[HTTP_RESPONSE_JSON_OK], body_len, body);
+    return http_resp;
 }
+#endif
