@@ -33,6 +33,31 @@ config WIFI_SAMPLE_DHCPV4_START
 	  using the vendor's default IP address, gateway, subnet mask.
 
 
+config HORCRUX_QR_DECODE_MAX_DIM
+	int "Maximum QR decode image dimension (px)"
+	default 224
+	help
+	  Maximum width/height (in pixels) of the grayscale image accepted by the
+	  on-device QR decoder (quirc). The ESP32-S3 can decode up to 224x224,
+	  while the classic ESP32 (DevKit V1) is limited to 192x192 to stay within
+	  its smaller RAM budget.
+
+	  The value is baked into the embedded web page (embed-assets.py replaces
+	  __QR_MAX_DIM__) so the client downsizes the captured image accordingly.
+
+config HORCRUX_QR_DECODE_SERVER
+	bool "Decode QR codes on the device (quirc)"
+	default n
+	help
+	  When enabled, the firmware embeds the quirc decoder and serves a
+	  POST /qr_decode endpoint: the web page uploads the grayscale image and
+	  the ESP32 decodes the QR code.
+
+	  This is opt-in per board: the classic ESP32 (DevKit V1) does not have
+	  enough RAM for quirc on top of the Wi-Fi stack, so it stays disabled and
+	  the web page falls back to local (jsQR) decoding. Only boards with enough
+	  RAM (ESP32-S3, ~400 KB app RAM) enable it in their board fragment.
+
 if WIFI_SAMPLE_DHCPV4_START
 
 # Some vendors start the DHCPv4 server after Soft AP initialization,

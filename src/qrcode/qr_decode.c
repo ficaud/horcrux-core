@@ -4,9 +4,11 @@
 //
 // This file is intentionally portable (no Zephyr dependency) so it can be
 // compiled both for the ESP32 firmware and for the WASM demo under Emscripten.
-// It is NOT listed in the firmware CMakeLists.txt on purpose: the ESP32-S3
-// lacks the memory for image upload/management, so quirc decoding is used only
-// by the WASM demo (see demo/Makefile).
+// On the ESP32 it is used by the /qr_decode HTTP handler: the front-end
+// uploads a grayscale image and this module decodes it with quirc.
+//
+// The maximum image dimension is set per board through the Kconfig symbol
+// HORCRUX_QR_DECODE_MAX_DIM (baked in via QR_DECODE_MAX_DIM); see qr_decode.h.
 
 #include "qr_decode.h"
 
@@ -22,8 +24,10 @@
  * Decode every QR code found in a quirc instance, writing the first
  * successfully decoded payload into @p out. Returns the payload length on
  * success, or a negative value if none of the candidate codes decoded.
+ * When @p grids_out is non-NULL, it receives the number of QR grids quirc
+ * identified (0 means no QR code was found at all).
  */
-static int decode_codes(struct quirc *q, char *out, size_t out_size);
+static int decode_codes(struct quirc *q, char *out, size_t out_size, int *grids_out);
 // ===========================================================================
 // One-shot decode
 // ===========================================================================
@@ -64,7 +68,7 @@ int qr_decode_gray(const uint8_t *gray, int width, int height, char *out, size_t
 
     quirc_end(q);
 
-    ret = decode_codes(q, out, out_size);
+    ret = decode_codes(q, out, out_size, NULL);
 
 out:
     quirc_destroy(q);
@@ -128,16 +132,20 @@ uint8_t *qr_decode_buffer(struct qr_decode_ctx *ctx)
     return quirc_begin(ctx->q, &w, &h);
 }
 
-int qr_decode_commit(struct qr_decode_ctx *ctx, char *out, size_t out_size)
+int qr_decode_commit(struct qr_decode_ctx *ctx, char *out, size_t out_size, int *grids_out)
 {
     if (ctx == NULL || ctx->q == NULL || out == NULL || out_size == 0)
     {
+        if (grids_out != NULL)
+        {
+            *grids_out = 0;
+        }
         return -1;
     }
 
     quirc_end(ctx->q);
 
-    return decode_codes(ctx->q, out, out_size);
+    return decode_codes(ctx->q, out, out_size, grids_out);
 }
 
 void qr_decode_destroy(struct qr_decode_ctx *ctx)
@@ -158,10 +166,15 @@ void qr_decode_destroy(struct qr_decode_ctx *ctx)
 // ===========================================================================
 // Static functions definition
 // ===========================================================================
-static int decode_codes(struct quirc *q, char *out, size_t out_size)
+static int decode_codes(struct quirc *q, char *out, size_t out_size, int *grids_out)
 {
     int ret = -1;
     int count = quirc_count(q);
+
+    if (grids_out != NULL)
+    {
+        *grids_out = count;
+    }
 
     if (count <= 0)
     {
@@ -170,8 +183,12 @@ static int decode_codes(struct quirc *q, char *out, size_t out_size)
 
     for (int i = 0; i < count; i++)
     {
-        struct quirc_code code;
-        struct quirc_data data;
+        /* Static scratch: struct quirc_code (cell bitmap ~3.9 KB) and
+         * struct quirc_data (payload up to QUIRC_MAX_PAYLOAD) are large.
+         * The HTTP server thread is single-client and never re-enters this
+         * function, so a shared buffer is safe and keeps them off the stack. */
+        static struct quirc_code code;
+        static struct quirc_data data;
 
         quirc_extract(q, i, &code);
 

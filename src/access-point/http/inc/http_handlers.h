@@ -68,4 +68,25 @@ const char *handler_reconstruct(const struct http_request *req);
  */
 const char *handler_qr_svg(const struct http_request *req);
 
+/**
+ * @brief QR decode handler — decodes a QR code from an uploaded grayscale image.
+ *
+ * Expects a POST whose query carries the image dimensions:
+ *   w   — image width in pixels (1..QR_DECODE_MAX_DIM)
+ *   h   — image height in pixels (1..QR_DECODE_MAX_DIM)
+ * and whose body holds exactly w*h raw grayscale bytes
+ * (Content-Type: application/octet-stream).
+ *
+ * The body is streamed directly into quirc's image buffer (no intermediate
+ * copy) while it is still arriving on the socket, so it must be invoked from
+ * the HTTP thread that owns the client connection.
+ *
+ * @param req[in]      Request parsed by router_parse().
+ * @param raw[in]      Raw received buffer (headers + any already-received body).
+ * @param client_fd[in] Client socket, used to read the remainder of the body.
+ *
+ * @return Complete HTTP response string (static, do not free).
+ */
+const char *handler_qr_decode_stream(const struct http_request *req, const char *raw, int client_fd);
+
 #endif /* ACCESS_POINT_HANDLERS_H */

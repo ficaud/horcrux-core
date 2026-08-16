@@ -78,15 +78,22 @@ if [ -n "$EFFECTIVE_USER" ]; then
     fi
 
     # ---- Bridge .zshrc for effective user ------------------------------
-    # devcontainer.json mounts host .zshrc (readonly) at
-    # /home/$USERNAME/.zshrc.  Link it into the effective user's HOME so
-    # zsh picks up the MacBook shell configuration.
+    # devcontainer.json mounts the host .zshrc (readonly) at
+    # /home/$USERNAME/.zshrc.  Wrap it (instead of symlinking it) so we can
+    # correct host-specific paths that are wrong inside the container --
+    # most importantly ZEPHYR_BASE, which the MacBook .zshrc points at
+    # /Users/.../zephyrproject/zephyr and would otherwise break west build.
     SOURCE_ZSHRC="/home/$USERNAME/.zshrc"
     TARGET_ZSHRC="$EFFECTIVE_HOME/.zshrc"
 
     if [ -f "$SOURCE_ZSHRC" ] || [ -L "$SOURCE_ZSHRC" ]; then
         if [ ! -e "$TARGET_ZSHRC" ] && [ ! -L "$TARGET_ZSHRC" ]; then
-            ln -s "$SOURCE_ZSHRC" "$TARGET_ZSHRC" 2>/dev/null || true
+            {
+                echo "[ -f \"$SOURCE_ZSHRC\" ] && source \"$SOURCE_ZSHRC\""
+                echo "# Container overrides (host paths may not exist here):"
+                echo "export ZEPHYR_BASE=\"$WORKSPACE/zephyr\""
+            } > "$TARGET_ZSHRC"
+            chown "$MOUNT_UID:$MOUNT_GID" "$TARGET_ZSHRC" 2>/dev/null || true
         fi
     fi
 
