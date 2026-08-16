@@ -1,36 +1,38 @@
 # Contribution Guide
 
-## Rules 
+## Rules
 
 TBD
 
 ## Environment Setup
 
-1. How to build and get into the .devcontainer
+The project ships a dev container that provides a ready-to-use build
+environment. See `doc/commands.md` for the full list of devcontainer
+commands.
 
-```bash
-# Launch the dev container
-devcontainer up --workspace-folder .
+1. **Build and enter the dev container**
 
-# Open a shell in the running dev container
-devcontainer exec --workspace-folder . zsh
-```
+   ```bash
+   devcontainer up --workspace-folder .
+   devcontainer exec --workspace-folder . zsh
+   ```
 
-2. How to rebuild the devcontainer entirely
+2. **Rebuild the dev container from scratch**
 
-```bash
-devcontainer up --workspace-folder . --remove-existing-container
-```
+   ```bash
+   devcontainer up --workspace-folder . --remove-existing-container
+   ```
 
-3. How to exit the devcontainer
+3. **Exit the dev container**
 
-```bash
-exit
-```
+   ```bash
+   exit
+   ```
 
 ## Running the Tests
 
-The project uses Google Test for native unit tests (not on the ESP32). Tests are built and run with CMake presets.
+The project uses Google Test for native unit tests (they run on the host, not
+the ESP32). Tests are built and run via CMake presets.
 
 ### 1. Configure
 
@@ -52,7 +54,7 @@ ctest --test-dir build/tests
 
 ### 4. Run all tests with verbose output
 
-Shows each test's command line, working directory and output in real time:
+Shows each test's command line, working directory, and output in real time:
 
 ```bash
 ctest --test-dir build/tests --verbose
@@ -76,24 +78,23 @@ Each suite is a standalone executable under `build/tests/tests/`:
 ### 6. Run a single test case with detailed output
 
 ```bash
-# Run only one test case with full details (per-test timing, assertions)
+# Run one test case with full details (per-test timing, assertions)
 ./build/tests/tests/qrcode_test --gtest_filter='QRCodeTest.ShareGoldenGridMatches'
 
-# Run only one test suite
+# Run every test in a suite
 ./build/tests/tests/sss_test --gtest_filter='*'
 
-# Multiple filters
+# Run several cases matching multiple filters
 ./build/tests/tests/qrcode_test --gtest_filter='QRCodeTest.Encode*:QRCodeTest.Share*'
 ```
 
-## Local WASM demo server
+## Local WASM Demo Server
 
-You can build the WASM demo server using the task: `Build Demo WASM (Makefile)`.
-
-Then you can run the server on the devcontainer through the port forwaring feautre (8000):
+Build the WASM demo using the `Build Demo WASM (Makefile)` task, then start a
+local server. In the dev container, use port forwarding on port 8000:
 
 ```bash
 cd /workspaces/horcrux/ && python3 demo/serve.py
 ```
 
-Connect to it : `http://localhost:8000`
+Then open `http://localhost:8000`.
