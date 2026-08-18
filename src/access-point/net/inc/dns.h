@@ -16,7 +16,7 @@
  * The DNS interceptor will answer A-record queries for this domain,
  * returning the captive portal IP.
  */
-#define DNS_PORTAL_DOMAIN "horcrux.co"
+#define DNS_PORTAL_DOMAIN "relic.co"
 
 /**
  * @brief Well-known captive portal detection domains.

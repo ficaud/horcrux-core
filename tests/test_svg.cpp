@@ -154,7 +154,7 @@ class SVGTest : public ::testing::Test
     void SetUp() override
     {
         // Encode a fixed, non-trivial payload so every test has a valid QR grid.
-        ASSERT_TRUE(encodeText("HORCRUX CORE", qrcode_));
+        ASSERT_TRUE(encodeText("RELIC CORE", qrcode_));
         size_ = qrcode_[0];
         ASSERT_GT(size_, 0);
     }
@@ -369,7 +369,7 @@ TEST_F(SVGTest, ZeroLengthBufferFails)
  * "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon
  * abandon abandon abandon abandon abandon abandon abandon abandon abandon art
  *
- * Shares have been generated under the forms of qrcode using Horcrux-core v1.2.3 on a ESP32-DevkitV1
+ * Shares have been generated under the forms of qrcode using Relic Core v1.2.3 on a ESP32-DevkitV1
  * shares are available under reference/svg/seed-phrase-shareX.svg
  */
 
@@ -381,7 +381,7 @@ TEST_F(SVGTest, ZeroLengthBufferFails)
 // encoder + SVG renderer and compare the resulting document byte-for-byte with
 // the golden reference SVG files checked in under tests/reference/svg/. They
 // guarantee that the output stays stable and identical to what was generated
-// on Horcrux-core v1.2.3 on an ESP32-DevKitV1.
+// on Relic Core v1.2.3 on an ESP32-DevKitV1.
 
 /**
  * @brief Encode a share string, render it to SVG and compare against its

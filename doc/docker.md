@@ -1,6 +1,6 @@
-# Run the Horcrux WASM demo with Docker Compose
+# Run the Relic Core WASM demo with Docker Compose
 
-The Horcrux Core web UI (the same split/unsplit pages as the ESP32 captive
+The Relic Core web UI (the same split/unsplit pages as the ESP32 captive
 portal) is published as a static image on GitHub Container Registry (GHCR).
 It runs entirely client-side in the browser and works on Linux, macOS,
 Windows and Raspberry Pi (`amd64`, `arm64`, `arm/v7`).
@@ -38,9 +38,9 @@ The image is tagged to reflect its source:
 
 ```yaml
 services:
-  horcrux:
-    image: ghcr.io/ficaud/horcrux-wasm:latest
-    container_name: horcrux
+  relic-core:
+    image: ghcr.io/ficaud/relic-core-wasm:latest
+    container_name: relic-core
     ports:
       - "8080:80"
     restart: unless-stopped
@@ -69,7 +69,7 @@ Each image embeds a manifest at `/version.json` and OCI labels:
 
 ```bash
 curl http://localhost:8080/version.json
-docker inspect horcrux --format '{{index .Config.Labels "org.opencontainers.image.version"}}'
+docker inspect relic-core --format '{{index .Config.Labels "org.opencontainers.image.version"}}'
 ```
 
 To build the image locally instead of pulling it, use the

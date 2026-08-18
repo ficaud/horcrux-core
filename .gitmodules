@@ -3,4 +3,4 @@
 	url = https://github.com/dsprenkels/sss.git
 [submodule "external/quirc"]
 	path = external/quirc
-	url = https://github.com/ficaud/horcrux-quirc.git 
+	url = https://github.com/ficaud/relic-quirc.git 

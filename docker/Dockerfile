@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
-# Horcrux Core — WASM Docker image.
+# Relic Core — WASM Docker image.
 #
 # Multi-stage build:
 #   1. Builds the SSS + QR WASM modules with Emscripten.
@@ -53,7 +53,7 @@ COPY src/access-point/assets/unsplit.html   /usr/share/nginx/html/unsplit.html
 COPY src/access-point/assets/style.css      /usr/share/nginx/html/style.css
 
 # Copy the favicon.
-COPY doc/img/horcrux-logo_icone.svg         /usr/share/nginx/html/favicon.svg
+COPY doc/img/relic-logo_icone.svg         /usr/share/nginx/html/favicon.svg
 
 # Copy the client-side JS (split / unsplit / QR scanner).
 COPY src/access-point/assets/scripts/       /usr/share/nginx/html/scripts/
@@ -81,19 +81,19 @@ COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
 # Copy the assembled static assets.
 COPY --from=assets /usr/share/nginx/html/ /usr/share/nginx/html/
 
-# Write a version manifest so users can identify which build of Horcrux
+# Write a version manifest so users can identify which build of Relic Core
 # this image corresponds to (visible at http://<host>/version.json).
 RUN printf '{\n  "version": "%s",\n  "commit": "%s",\n  "branch": "%s",\n  "build_date": "%s"\n}\n' \
     "${VERSION}" "${COMMIT_SHA}" "${BRANCH}" "${BUILD_DATE}" \
     > /usr/share/nginx/html/version.json
 
 # Also expose the version as OCI labels so it is visible via docker inspect:
-#   docker inspect horcrux --format '{{index .Config.Labels "org.opencontainers.image.version"}}'
-LABEL org.opencontainers.image.title="Horcrux Core" \
+#   docker inspect relic-core --format '{{index .Config.Labels "org.opencontainers.image.version"}}'
+LABEL org.opencontainers.image.title="Relic Core" \
       org.opencontainers.image.description="Shamir's Secret Sharing web UI" \
       org.opencontainers.image.version="${VERSION}" \
       org.opencontainers.image.revision="${COMMIT_SHA}" \
-      org.opencontainers.image.source="https://github.com/ficaud/horcrux-core" \
+      org.opencontainers.image.source="https://github.com/ficaud/relic-core" \
       org.opencontainers.image.created="${BUILD_DATE}"
 
 EXPOSE 80

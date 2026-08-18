@@ -6,7 +6,7 @@
  * @author Julien F.
  * @date 2026-07-31
  *
- * @details Uses the reference qr_encode.c from horcrux-connect directly.
+ * @details Uses the reference qr_encode.c from relic-core directly.
  *          Compile with Emscripten alongside qr_encode.c.
  */
 

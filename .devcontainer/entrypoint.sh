@@ -13,7 +13,7 @@ set -eu
 USERNAME="${USERNAME:-vscode}"
 USER_UID="${USER_UID:-1000}"
 USER_GID="${USER_GID:-1000}"
-WORKSPACE="${WORKSPACE:-/workspaces/horcrux}"
+WORKSPACE="${WORKSPACE:-/workspaces/relic-core}"
 
 # ---- Detect the owner of the workspace mount ---------------------------
 if [ -d "$WORKSPACE" ]; then
@@ -26,8 +26,12 @@ fi
 
 # ---- (Re)create the user with the detected IDs -------------------------
 if [ "$MOUNT_GID" -ne "$(id -g "$USERNAME" 2>/dev/null || echo 0)" ]; then
+    # Ensure the group exists first: the base image may have shipped a
+    # conflicting GID (e.g. "ubuntu" with GID 1000) that made the Dockerfile's
+    # groupadd fail silently, leaving "vscode" without a group.
+    getent group "$USERNAME" >/dev/null 2>&1 || groupadd "$USERNAME" 2>/dev/null || true
     groupadd --gid "$MOUNT_GID" "$USERNAME" 2>/dev/null || \
-        groupmod -o -g "$MOUNT_GID" "$USERNAME"
+        groupmod -o -g "$MOUNT_GID" "$USERNAME" 2>/dev/null || true
 fi
 
 if [ "$MOUNT_UID" -ne "$(id -u "$USERNAME" 2>/dev/null || echo 0)" ]; then
@@ -135,7 +139,7 @@ fi
 # Runs before every command so CI docker run --rm also gets blobs without
 # needing an explicit CI step.  If the west workspace isn't initialized
 # yet the script is a no-op.
-BLOB_SCRIPT="/workspaces/horcrux/tools/download-blobs.sh"
+BLOB_SCRIPT="/workspaces/relic-core/tools/download-blobs.sh"
 if [ -f "$BLOB_SCRIPT" ]; then
     bash "$BLOB_SCRIPT" 2>/dev/null || true
 fi

@@ -8,7 +8,7 @@
 // uploads a grayscale image and this module decodes it with quirc.
 //
 // The maximum image dimension is set per board through the Kconfig symbol
-// HORCRUX_QR_DECODE_MAX_DIM (baked in via QR_DECODE_MAX_DIM); see qr_decode.h.
+// RELIC_QR_DECODE_MAX_DIM (baked in via QR_DECODE_MAX_DIM); see qr_decode.h.
 
 #include "qr_decode.h"
 

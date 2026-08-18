@@ -32,10 +32,10 @@ WASM_FLAGS = \
 	-s FILESYSTEM=0 \
 	--no-entry
 
-HORCRUX_SSS_DIR = ../src/sss
-HORCRUX_SSS = $(HORCRUX_SSS_DIR)/sss.c
-SRC = src/main.c src/sys_rand_stub.c $(HORCRUX_SSS)
-INC = -Isrc -Isrc/stubs -I$(HORCRUX_SSS_DIR)
+RELIC_SSS_DIR = ../src/sss
+RELIC_SSS = $(RELIC_SSS_DIR)/sss.c
+SRC = src/main.c src/sys_rand_stub.c $(RELIC_SSS)
+INC = -Isrc -Isrc/stubs -I$(RELIC_SSS_DIR)
 OUT_DIR = scripts
 OUT_WASM = $(OUT_DIR)/sss.wasm
 OUT_JS = $(OUT_DIR)/sss.js
@@ -51,10 +51,10 @@ QR_WASM_FLAGS = \
 	-s FILESYSTEM=0 \
 	--no-entry
 
-HORCRUX_QR_DIR = ../src/qrcode
-HORCRUX_SVG_DIR = ../src/svg
-QR_SRC = src/qr_wasm.c $(HORCRUX_QR_DIR)/qr_encode.c $(HORCRUX_SVG_DIR)/qrcode_to_svg.c
-QR_INC = -I$(HORCRUX_QR_DIR) -I$(HORCRUX_SVG_DIR)
+RELIC_QR_DIR = ../src/qrcode
+RELIC_SVG_DIR = ../src/svg
+QR_SRC = src/qr_wasm.c $(RELIC_QR_DIR)/qr_encode.c $(RELIC_SVG_DIR)/qrcode_to_svg.c
+QR_INC = -I$(RELIC_QR_DIR) -I$(RELIC_SVG_DIR)
 QR_OUT_WASM = $(OUT_DIR)/qr.wasm
 QR_OUT_JS = $(OUT_DIR)/qr.js
 
@@ -72,9 +72,9 @@ QR_DECODE_WASM_FLAGS = \
 QUIRC_DIR = ../external/quirc/lib
 QUIRC_SRC = $(QUIRC_DIR)/quirc.c $(QUIRC_DIR)/decode.c $(QUIRC_DIR)/identify.c $(QUIRC_DIR)/version_db.c
 # The wrapper (demo) plus the portable decoder logic moved into src/qrcode/.
-HORCRUX_QR_DECODE_DIR = ../src/qrcode
-QR_DECODE_SRC = src/qr_decode_wasm.c $(HORCRUX_QR_DECODE_DIR)/qr_decode.c $(QUIRC_SRC)
-QR_DECODE_INC = -I$(HORCRUX_QR_DECODE_DIR) -I$(QUIRC_DIR)
+RELIC_QR_DECODE_DIR = ../src/qrcode
+QR_DECODE_SRC = src/qr_decode_wasm.c $(RELIC_QR_DECODE_DIR)/qr_decode.c $(QUIRC_SRC)
+QR_DECODE_INC = -I$(RELIC_QR_DECODE_DIR) -I$(QUIRC_DIR)
 QR_DECODE_OUT_WASM = $(OUT_DIR)/qr_decode.wasm
 QR_DECODE_OUT_JS = $(OUT_DIR)/qr_decode.js
 

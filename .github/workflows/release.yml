@@ -59,8 +59,8 @@ jobs:
       - name: Setup West workspace
         run: |
           docker run --rm \
-            -v ${{ github.workspace }}:/workspaces/horcrux \
-            -w /workspaces/horcrux \
+            -v ${{ github.workspace }}:/workspaces/relic-core \
+            -w /workspaces/relic-core \
             zephyr-dev:latest \
             bash -c '
               mkdir -p .west &&
@@ -71,11 +71,11 @@ jobs:
       - name: Build firmware (${{ matrix.target.artifact }})
         run: |
           docker run --rm \
-            -v ${{ github.workspace }}:/workspaces/horcrux \
-            -w /workspaces/horcrux \
-            -e XDG_CACHE_HOME=/workspaces/horcrux/build/.cache \
+            -v ${{ github.workspace }}:/workspaces/relic-core \
+            -w /workspaces/relic-core \
+            -e XDG_CACHE_HOME=/workspaces/relic-core/build/.cache \
             zephyr-dev:latest \
-            bash -c 'mkdir -p /workspaces/horcrux/build/.cache && west build -b ${{ matrix.target.board }} -p always -d build .'
+            bash -c 'mkdir -p /workspaces/relic-core/build/.cache && west build -b ${{ matrix.target.board }} -p always -d build .'
 
       - name: Prepare release artifact
         run: |
@@ -129,7 +129,7 @@ jobs:
           body: |
             ## How to flash the firmware ${{ steps.version.outputs.tag }}
 
-            1. Open the [web flasher](https://ficaud.github.io/horcrux-core/flash.html) in Chrome or Edge.
+            1. Open the [web flasher](https://ficaud.github.io/relic-core/flash.html) in Chrome or Edge.
             2. Connect your ESP32 board via USB.
             3. Put the board in download mode:
                 * Hold BOOT, tap RESET, release BOOT.

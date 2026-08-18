@@ -42,7 +42,7 @@ external/*
 # Tests (not needed for the WASM image)
 tests/
 
-# Documentation (only doc/img/horcrux-logo_icone.svg is needed, copied explicitly)
+# Documentation (only doc/img/relic-logo_icone.svg is needed, copied explicitly)
 doc/commands.md
 doc/contribution.md
 doc/img/split.PNG

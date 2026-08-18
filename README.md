@@ -1,26 +1,26 @@
 <div align="center">
 
-<img src="doc/img/horcrux-logo.png" width="150" alt="Horcrux Core logo">
+<img src="doc/img/relic-logo.png" width="150" alt="Relic Core logo">
 
 <br/>
 <br/>
 <br/>
 
-# Horcrux Core
+# Relic Core
 
 [![Zephyr](https://img.shields.io/badge/zephyr-v4.4.2-4B32C3?logo=zephyr)](https://www.zephyrproject.org/)
-[![Build](https://github.com/ficaud/horcrux-core/actions/workflows/build.yml/badge.svg)](https://github.com/ficaud/horcrux-core/actions/workflows/build.yml)
-[![Demo](https://img.shields.io/badge/demo-online-764ba2)](https://ficaud.github.io/horcrux-core/)
-[![Docs](https://img.shields.io/badge/docs-online-454545)](https://ficaud.github.io/horcrux-hw/)
+[![Build](https://github.com/ficaud/relic-core/actions/workflows/build.yml/badge.svg)](https://github.com/ficaud/relic-core/actions/workflows/build.yml)
+[![Demo](https://img.shields.io/badge/demo-online-764ba2)](https://ficaud.github.io/relic-core/)
+[![Docs](https://img.shields.io/badge/docs-online-454545)](https://ficaud.github.io/relic-hw/)
 
 </br>
 </div>
 
-Horcrux Core is a firmware for ESP32 boards that implements Shamir's Secret Sharing algorithm to split and recover secrets (like passwords, private keys, bitcoin seed phrases etc.) in a secure way.
+Relic Core is a firmware for ESP32 boards that implements Shamir's Secret Sharing algorithm to split and recover secrets (like passwords, private keys, bitcoin seed phrases etc.) in a secure way.
 
-See the [demo](https://ficaud.github.io/horcrux-core/) in a WASM type web page hosted by github to see how it works.
+See the [demo](https://ficaud.github.io/relic-core/) in a WASM type web page hosted by github to see how it works.
 
-See the [full doc](https://ficaud.github.io/horcrux-hw/) to learn more about the general concepts of Horcrux and how to build it yourself in full autonomous.
+See the [full doc](https://ficaud.github.io/relic-hw/) to learn more about the general concepts of Relic Core and how to build it yourself in full autonomous.
 
 ## Features
 
@@ -33,7 +33,7 @@ See the [full doc](https://ficaud.github.io/horcrux-hw/) to learn more about the
 
 ## How to flash the firmware
 
-1. Open the **[web flasher](https://ficaud.github.io/horcrux-core/flash.html)** in Chrome or Edge.
+1. Open the **[web flasher](https://ficaud.github.io/relic-core/flash.html)** in Chrome or Edge.
 2. Connect your ESP32 board via USB.
 3. Put the board in **download mode**:
    - Hold **BOOT**, tap **RESET**, release **BOOT**.
@@ -42,20 +42,20 @@ See the [full doc](https://ficaud.github.io/horcrux-hw/) to learn more about the
 
 ## How to connect to captive portal
 
-Once the ESP32 is loaded with the firmware, it will create a Wi-Fi access point named `Horcrux-XXXX`, where `XXXX` is the first 4 characters of the ESP32 MAC address.
+Once the ESP32 is loaded with the firmware, it will create a Wi-Fi access point named `Relic-XXXX`, where `XXXX` is the first 4 characters of the ESP32 MAC address.
 
 You can then join the network in one of two ways:
 
 1. **Scan the QR code** shown after flashing the firmware to join the network automatically (note that you must reboot the device before doing so).
 
 <div align="center">
-<img src="doc/img/success_flashing.PNG" width="380" alt="success flashing page from horcrux">
+<img src="doc/img/success_flashing.PNG" width="380" alt="success flashing page from relic-core">
 <br>
 <br>
 <br>
 </div>
 
-2. **Manually connect** by searching for the SSID `Horcrux-XXXX` on your router and connecting with the password derived from your device's MAC address (also shown on below the SSID after flashing the device).
+2. **Manually connect** by searching for the SSID `Relic-XXXX` on your router and connecting with the password derived from your device's MAC address (also shown on below the SSID after flashing the device).
 
 ## SSS settings
 
@@ -66,16 +66,16 @@ Maybe in the future, we will be able to set the threshold dynamically. That's no
 You also have the possibility to generate QR codes with the shares (in the split page), and scan QR codes back to reconstruct the secret in the unpsplit page.
 
 <div align="center">
-<img src="doc/img/split.PNG" width="250" alt="split tab from horcrux core">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-<img src="doc/img/unsplit.PNG" width="250" alt="unsplit tab from horcrux core">
+<img src="doc/img/split.PNG" width="250" alt="split tab from relic core">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+<img src="doc/img/unsplit.PNG" width="250" alt="unsplit tab from relic core">
 </div>
 
-## Run Horcrux core the with Docker on a local machine
+## Run Relic Core the with Docker on a local machine
 
 The WASM demo (the same web UI as the ESP32 captive portal, but running 100% client-side in the browser) is packaged as a Docker image. It works on any platform: **Linux**, **macOS**, **Windows**, and **Raspberry Pi** (arm64 / arm/v7).
 
-Please refer to the [horcrux-core docker doc](doc/docker.md) for more information.
+Please refer to the [relic-core docker doc](doc/docker.md) for more information.
 
 ## Contribution
 
-In [contribution](doc/contribution.md), you'll find all the required information to build and flash the Horcrux Core ESP32 firmware.
+In [contribution](doc/contribution.md), you'll find all the required information to build and flash the Relic Core ESP32 firmware.

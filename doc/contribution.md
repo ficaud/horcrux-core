@@ -94,7 +94,7 @@ Build the WASM demo using the `Build Demo WASM (Makefile)` task, then start a
 local server. In the dev container, use port forwarding on port 8000:
 
 ```bash
-cd /workspaces/horcrux/ && python3 demo/serve.py
+cd /workspaces/relic-core/ && python3 demo/serve.py
 ```
 
 Then open `http://localhost:8000`.

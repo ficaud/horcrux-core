@@ -1,7 +1,7 @@
 # Copyright 2025 NXP
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-mainmenu "Network Wi-Fi horcrux-connect application"
+mainmenu "Network Wi-Fi relic-core application"
 
 config WIFI_SAMPLE_AP_SSID
 	string "SSID of soft AP"
@@ -33,7 +33,7 @@ config WIFI_SAMPLE_DHCPV4_START
 	  using the vendor's default IP address, gateway, subnet mask.
 
 
-config HORCRUX_QR_DECODE_MAX_DIM
+config RELIC_QR_DECODE_MAX_DIM
 	int "Maximum QR decode image dimension (px)"
 	default 224
 	help
@@ -45,7 +45,7 @@ config HORCRUX_QR_DECODE_MAX_DIM
 	  The value is baked into the embedded web page (embed-assets.py replaces
 	  __QR_MAX_DIM__) so the client downsizes the captured image accordingly.
 
-config HORCRUX_QR_DECODE_SERVER
+config RELIC_QR_DECODE_SERVER
 	bool "Decode QR codes on the device (quirc)"
 	default n
 	help

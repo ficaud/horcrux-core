@@ -1,12 +1,12 @@
 # SPDX-License-Identifier: Apache-2.0
 #
-# Docker — Build and push the Horcrux WASM demo image to GitHub Container
+# Docker — Build and push the Relic Core WASM demo image to GitHub Container
 # Registry (GHCR). Produces multi-arch images (linux/amd64, linux/arm64,
 # linux/arm/v7) so it runs on Linux, macOS, and Raspberry Pi.
 #
 # The image is published as:
-#   ghcr.io/<owner>/horcrux-wasm:latest
-#   ghcr.io/<owner>/horcrux-wasm:<tag>   (on git tags)
+#   ghcr.io/<owner>/relic-core-wasm:latest
+#   ghcr.io/<owner>/relic-core-wasm:<tag>   (on git tags)
 
 name: Docker
 
@@ -31,7 +31,7 @@ on:
         type: string
 
 env:
-  IMAGE_NAME: horcrux-wasm
+  IMAGE_NAME: relic-core-wasm
 
 jobs:
   build:

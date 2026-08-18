@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  *
  * Stub header for Zephyr's <zephyr/random/random.h>.
- * Used when compiling the horcrux-connect sss.c outside Zephyr
+ * Used when compiling the relic-core sss.c outside Zephyr
  * (Emscripten WASM build).  The implementation is in sys_rand_stub.c.
  */
 

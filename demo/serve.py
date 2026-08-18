@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Horcrux WASM demo dev server.
+Relic Core WASM demo dev server.
 
 Serves the captive-portal assets (src/access-point/assets/) as the live web
 root, and maps the WASM modules (sss.js/sss.wasm/qr.js/qr.wasm) from
