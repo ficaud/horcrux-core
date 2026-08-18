@@ -45,8 +45,8 @@ jobs:
       - name: Build and run unit tests
         run: |
           docker run --rm \
-            -v ${{ github.workspace }}:/workspaces/horcrux \
-            -w /workspaces/horcrux \
+            -v ${{ github.workspace }}:/workspaces/relic-core \
+            -w /workspaces/relic-core \
             zephyr-dev:latest \
             bash -c "
               set -e -x
@@ -96,8 +96,8 @@ jobs:
       - name: Setup West workspace
         run: |
           docker run --rm \
-            -v ${{ github.workspace }}:/workspaces/horcrux \
-            -w /workspaces/horcrux \
+            -v ${{ github.workspace }}:/workspaces/relic-core \
+            -w /workspaces/relic-core \
             zephyr-dev:latest \
             bash -c '
               mkdir -p .west &&
@@ -108,11 +108,11 @@ jobs:
       - name: Build firmware (${{ matrix.target.board }})
         run: |
           docker run --rm \
-            -v ${{ github.workspace }}:/workspaces/horcrux \
-            -w /workspaces/horcrux \
-            -e XDG_CACHE_HOME=/workspaces/horcrux/build/.cache \
+            -v ${{ github.workspace }}:/workspaces/relic-core \
+            -w /workspaces/relic-core \
+            -e XDG_CACHE_HOME=/workspaces/relic-core/build/.cache \
             zephyr-dev:latest \
-            bash -c 'mkdir -p /workspaces/horcrux/build/.cache && west build -b ${{ matrix.target.board }} -p always -d build .'
+            bash -c 'mkdir -p /workspaces/relic-core/build/.cache && west build -b ${{ matrix.target.board }} -p always -d build .'
 
       - name: Rename firmware binary
         run: |

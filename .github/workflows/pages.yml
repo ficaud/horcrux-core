@@ -52,7 +52,7 @@ jobs:
           cp src/access-point/assets/unsplit.html   pages/
           cp demo/flash.html                        pages/
           cp src/access-point/assets/style.css      pages/
-          cp doc/img/horcrux-logo_icone.svg         pages/favicon.svg
+          cp doc/img/relic-logo_icone.svg         pages/favicon.svg
           cp demo/scripts/sss.js                    pages/scripts/
           cp demo/scripts/sss.wasm                  pages/scripts/
           cp demo/scripts/qr.js                     pages/scripts/
@@ -65,7 +65,7 @@ jobs:
 
           # Download firmware binaries from the latest release (same-origin, no CORS)
           echo "Downloading firmware from latest release..."
-          RELEASE=$(curl -sL https://api.github.com/repos/ficaud/horcrux-core/releases/latest)
+          RELEASE=$(curl -sL https://api.github.com/repos/ficaud/relic-core/releases/latest)
 
           URL_S3=$(echo "$RELEASE" | jq -r '.assets[] | select(.name=="fw-esp32-s3-devkitc-1.bin") | .browser_download_url')
           if [ -n "$URL_S3" ]; then

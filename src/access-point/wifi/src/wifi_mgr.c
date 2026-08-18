@@ -220,7 +220,7 @@ static int enable_ap_mode(struct net_if **ap_iface)
 {
     struct wifi_connect_req_params ap_config;
     /* SSID buffer: base SSID + "-" + 4 hex digits of MAC = max 32 chars */
-    // Horcrux-XXXX (12 so we define it to 16 to be safe)
+    // Relic-XXXX (10 so we define it to 16 to be safe)
     char ssid_buf[16];
     // Get the link-layer address of the AP interface to generate a unique SSID
     struct net_linkaddr *link_addr = net_if_get_link_addr(*ap_iface);

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// Unit tests for Shamir's Secret Sharing (horcrux implementation).
+// Unit tests for Shamir's Secret Sharing (relic-core implementation).
 
 #include "sss.h"
 
@@ -296,9 +296,9 @@ static void from_sss_keyshare(struct sss_share *out, const sss_Keyshare in)
 }
 
 // ---------------------------------------------------------------------------
-// Test A:  horcrux split  →  sss_combine_keyshares
+// Test A:  relic-core split  →  sss_combine_keyshares
 // ---------------------------------------------------------------------------
-TEST_F(SSSplitTest, HorcruxSplit_SssCombine)
+TEST_F(SSSplitTest, RelicSplit_SssCombine)
 {
     uint8_t key[32];
     std::memset(key, 0x42, 32); // deterministic 32-byte secret
@@ -316,13 +316,13 @@ TEST_F(SSSplitTest, HorcruxSplit_SssCombine)
     uint8_t restored[32];
     sss_combine_keyshares(restored, ks, 3);
 
-    EXPECT_EQ(std::memcmp(key, restored, 32), 0) << "sss could not reconstruct horcrux shares";
+    EXPECT_EQ(std::memcmp(key, restored, 32), 0) << "sss could not reconstruct relic-core shares";
 }
 
 // ---------------------------------------------------------------------------
-// Test B:  sss_create_keyshares  →  horcrux combine
+// Test B:  sss_create_keyshares  →  relic-core combine
 // ---------------------------------------------------------------------------
-TEST_F(SSSplitTest, SssCreate_HorcruxCombine)
+TEST_F(SSSplitTest, SssCreate_RelicCombine)
 {
     uint8_t key[32];
     std::memset(key, 0x43, 32);
@@ -331,18 +331,18 @@ TEST_F(SSSplitTest, SssCreate_HorcruxCombine)
     sss_Keyshare ks[5];
     sss_create_keyshares(ks, key, 5, 3);
 
-    // Convert shares 1,3,4 to horcrux format
+    // Convert shares 1,3,4 to relic-core format
     struct sss_share shares[3];
     from_sss_keyshare(&shares[0], ks[1]);
     from_sss_keyshare(&shares[1], ks[3]);
     from_sss_keyshare(&shares[2], ks[4]);
 
-    // Combine with horcrux
+    // Combine with relic-core
     uint8_t restored[32];
     std::memset(restored, 0, 32);
     ASSERT_EQ(sss_combine(shares, 3, restored, 32), 0);
 
-    EXPECT_EQ(std::memcmp(key, restored, 32), 0) << "horcrux could not reconstruct sss shares";
+    EXPECT_EQ(std::memcmp(key, restored, 32), 0) << "relic-core could not reconstruct sss shares";
 }
 
 // ---------------------------------------------------------------------------
@@ -353,7 +353,7 @@ TEST_F(SSSplitTest, SssCrossValidation_AllSubsets)
     uint8_t key[32];
     std::memset(key, 0x44, 32);
 
-    // Split with horcrux
+    // Split with relic-core
     struct sss_share shares[5];
     ASSERT_EQ(sss_split(key, 32, 5, 3, shares), 0);
 
@@ -372,13 +372,13 @@ TEST_F(SSSplitTest, SssCrossValidation_AllSubsets)
 
     for (int c = 0; c < 10; c++)
     {
-        // horcrux self-combine
+        // relic-core self-combine
         struct sss_share sub[3] = {shares[combos[c][0]], shares[combos[c][1]], shares[combos[c][2]]};
         uint8_t got1[32];
         std::memset(got1, 0, 32);
         ASSERT_EQ(sss_combine(sub, 3, got1, 32), 0);
         EXPECT_EQ(std::memcmp(key, got1, 32), 0)
-            << "horcrux self-combine failed [" << combos[c][0] << "," << combos[c][1] << "," << combos[c][2] << "]";
+            << "relic-core self-combine failed [" << combos[c][0] << "," << combos[c][1] << "," << combos[c][2] << "]";
 
         // sss cross-combine
         sss_Keyshare ks[3];

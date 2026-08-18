@@ -4,7 +4,7 @@
 # Télécharge les blobs binaires Espressif nécessaires au driver Wi-Fi ESP32.
 set -euo pipefail
 
-HAL_DIR="/workspaces/horcrux/modules/hal/espressif"
+HAL_DIR="/workspaces/relic-core/modules/hal/espressif"
 MODULE_YML="$HAL_DIR/zephyr/module.yml"
 
 if [ ! -f "$MODULE_YML" ]; then

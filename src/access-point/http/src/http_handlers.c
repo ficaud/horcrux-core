@@ -16,13 +16,13 @@
 
 #include <zephyr/logging/log.h>
 
-#if defined(CONFIG_HORCRUX_QR_DECODE_SERVER)
+#if defined(CONFIG_RELIC_QR_DECODE_SERVER)
 #include <zephyr/net/socket.h>
 #endif
 
 #include "http_types.h"
 #include "page_captive.h"
-#if defined(CONFIG_HORCRUX_QR_DECODE_SERVER)
+#if defined(CONFIG_RELIC_QR_DECODE_SERVER)
 #include "qr_decode.h"
 #endif
 #include "qr_encode.h"
@@ -151,7 +151,7 @@ static int count_tokens(const char *s);
  */
 static int get_token(const char *s, int index, char *out, size_t out_size);
 
-#if defined(CONFIG_HORCRUX_QR_DECODE_SERVER)
+#if defined(CONFIG_RELIC_QR_DECODE_SERVER)
 /**
  * @brief Build the JSON HTTP response for a decoded QR payload.
  *
@@ -169,7 +169,7 @@ static int get_token(const char *s, int index, char *out, size_t out_size);
  *         payload does not fit in @p body.
  */
 static const char *handler_qr_decode_json_response(int payload_len, const char *payload, char *body, size_t body_size);
-#endif /* CONFIG_HORCRUX_QR_DECODE_SERVER */
+#endif /* CONFIG_RELIC_QR_DECODE_SERVER */
 // ===========================================================================
 // Public functions definition
 // ===========================================================================
@@ -385,7 +385,7 @@ exit:
     return (ret);
 }
 
-#if defined(CONFIG_HORCRUX_QR_DECODE_SERVER)
+#if defined(CONFIG_RELIC_QR_DECODE_SERVER)
 const char *handler_qr_decode_stream(const struct http_request *req, const char *raw, int client_fd)
 {
     const char *ret = http_responses_list[HTTP_RESPONSE_BAD_REQUEST];
@@ -516,7 +516,7 @@ const char *handler_qr_decode_stream(const struct http_request *req, const char 
 exit:
     return (ret);
 }
-#endif /* CONFIG_HORCRUX_QR_DECODE_SERVER */
+#endif /* CONFIG_RELIC_QR_DECODE_SERVER */
 
 // ===========================================================================
 // Static functions
@@ -806,7 +806,7 @@ static int get_token(const char *s, int index, char *out, size_t out_size)
     }
 }
 
-#if defined(CONFIG_HORCRUX_QR_DECODE_SERVER)
+#if defined(CONFIG_RELIC_QR_DECODE_SERVER)
 static const char *handler_qr_decode_json_response(int payload_len, const char *payload, char *body, size_t body_size)
 {
     static char http_resp[4096];

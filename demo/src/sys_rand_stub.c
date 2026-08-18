@@ -3,7 +3,7 @@
  *
  * Deterministic mock for Zephyr's sys_rand_get() + sss_set_seed().
  *
- * Compile and link this together with the horcrux-connect sss.c when
+ * Compile and link this together with the relic-core sss.c when
  * building the WASM demo outside the Zephyr build system.
  */
 

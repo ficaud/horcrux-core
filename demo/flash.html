@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>Horcrux — Flash Firmware</title>
+    <title>Relic Core — Flash Firmware</title>
     <link rel="stylesheet" href="style.css">
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
 </head>
@@ -16,7 +16,7 @@
         <div class="icon">&#x26A1;</div>
         <h2>Flash Firmware</h2>
         <p class="desc">
-            Flash the Horcrux firmware to your ESP32 board directly from your browser.
+            Flash the Relic Core firmware to your ESP32 board directly from your browser.
             No software to install — just a Chrome or Edge browser and a USB cable.
         </p>
 
@@ -63,7 +63,7 @@
         <!-- Wi-Fi QR code (shown after flashing) -->
         <div id="wifi-qr-wrapper" style="display:none;margin-bottom:12px;text-align:center">
             <div style="font-size:13px;opacity:0.9;margin-bottom:6px">
-                Connect to the Horcrux access point
+                Connect to the Relic Core access point
             </div>
             <div id="wifi-qr" style="background:#fff;border-radius:8px;padding:8px;display:inline-block"></div>
             <div id="wifi-ssid" style="font-size:12px;margin-top:6px;opacity:0.95;word-break:break-all"></div>
@@ -219,7 +219,7 @@
                 if (!tag) {
                     try {
                         const apiResp = await fetch(
-                            'https://api.github.com/repos/ficaud/horcrux-core/releases/latest', {
+                            'https://api.github.com/repos/ficaud/relic-core/releases/latest', {
                             headers: { Accept: 'application/vnd.github.v3+json' }
                         });
                         if (apiResp.ok) {
@@ -266,7 +266,7 @@
         // ---- Wi-Fi QR code helper ----
         // Builds a standard "WIFI:" QR payload from the chip MAC and displays it.
         // The SSID must match what the freshly-flashed firmware broadcasts
-        // (see wifi_mgr.c): "Horcrux-" + the last 2 bytes of the MAC formatted
+        // (see wifi_mgr.c): "Relic-" + the last 2 bytes of the MAC formatted
         // as 4 uppercase hex digits (addr[4] and addr[5]).
 
         // Length of the derived password (must match WIFI_PSK_LEN in wifi_mgr.h).
@@ -282,7 +282,7 @@
                 return null;
             }
             // The device uses bytes addr[4] and addr[5] (the last two).
-            return `Horcrux-${parts[4].toUpperCase()}${parts[5].toUpperCase()}`;
+            return `Relic-${parts[4].toUpperCase()}${parts[5].toUpperCase()}`;
         }
 
         // Derives the Wi-Fi password from the device MAC address.
@@ -375,7 +375,7 @@
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `horcrux-wifi-${Date.now()}.svg`;
+                a.download = `relic-wifi-${Date.now()}.svg`;
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
@@ -461,7 +461,7 @@
                 // Generate a Wi-Fi QR code from the chip MAC so the user can
                 // connect to the freshly-flashed access point by scanning it.
                 // The SSID follows the same construction as the firmware's
-                // wifi_mgr.c: "Horcrux-" + the last 4 hex digits of the MAC
+                // wifi_mgr.c: "Relic-" + the last 4 hex digits of the MAC
                 // (bytes addr[4] and addr[5], uppercase).
                 if (mac) {
                     showWifiQr(mac);
@@ -588,7 +588,7 @@
             connectBtn.style.opacity = '0.5';
         }
 
-        console.log('Horcrux Web Flasher ready.');
+        console.log('Relic Core Web Flasher ready.');
     </script>
 </body>
 

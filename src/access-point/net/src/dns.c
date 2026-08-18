@@ -58,7 +58,7 @@ static void build_dns_response(uint8_t *buf, const uint8_t *query, int query_len
  * @param query[in]     The received DNS query packet.
  * @param query_len[in] Length of the query packet.
  * @param name_out[out] Optional buffer (DNS_NAME_MAX_LEN + 1 bytes) that
- *                      receives the decoded query name (e.g. "horcrux.co").
+ *                      receives the decoded query name (e.g. "relic.co").
  *                      May be NULL if the caller does not need it.
  *
  * @return true if the query is for the portal domain, false otherwise.
@@ -157,9 +157,9 @@ static bool query_is_for_portal(const uint8_t *query, int query_len, char *name_
     /*
      * The QNAME starts at offset 12 (right after the 12-byte header) and is
      * encoded as a sequence of length-prefixed labels terminated by a zero
-     * byte (RFC 1035 §4.1.2), e.g. "horcrux.co" → 0x07 h o r c r u x 0x02 c o 0x00.
+     * byte (RFC 1035 §4.1.2), e.g. "relic.co" → 0x05 r e l i c 0x02 c o 0x00.
      *
-     * We decode the whole name into a human-readable buffer (e.g. "horcrux.co")
+     * We decode the whole name into a human-readable buffer (e.g. "relic.co")
      * and compare it case-insensitively against the configured portal domain.
      * Only the exact domain is matched (no subdomains) so that unrelated DNS
      * traffic is not intercepted.
@@ -202,7 +202,7 @@ static bool query_is_for_portal(const uint8_t *query, int query_len, char *name_
 
         /* Append a dot separator between labels */
         // Here this means we get at the end of the X label,
-        // so we need to add a dot "Horcrux." to the name
+        // so we need to add a dot "Relic." to the name
         if (name_len > 0)
         {
             if (name_len >= DNS_NAME_MAX_LEN)
@@ -319,7 +319,7 @@ static void dns_thread_fn(void *arg1, void *arg2, void *arg3)
             continue;
         }
 
-        // Only respond to queries for the captive portal domain (e.g. "horcrux.co").
+        // Only respond to queries for the captive portal domain (e.g. "relic.co").
         // All other queries are dropped so that normal DNS resolution is not intercepted.
         char qname[DNS_NAME_MAX_LEN + 1];
         if (!query_is_for_portal(rx_buf, rx_len, qname))

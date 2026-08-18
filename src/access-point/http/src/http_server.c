@@ -153,7 +153,7 @@ static void http_thread_fn(void *arg1, void *arg2, void *arg3)
             {
                 if (strcmp(req.path, "/qr_decode") == 0)
                 {
-#if defined(CONFIG_HORCRUX_QR_DECODE_SERVER)
+#if defined(CONFIG_RELIC_QR_DECODE_SERVER)
                     /* Streaming QR decode: the grayscale body is read directly
                      * into quirc's image buffer while it is still arriving. */
                     LOG_INF("POST /qr_decode -> streaming decode");

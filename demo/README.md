@@ -1,4 +1,4 @@
-# Horcrux · WASM Demo
+# Relic Core · WASM Demo
 
 Shamir's Secret Sharing (SSS) over GF(256) — compiled to WebAssembly and running entirely in your browser.
 

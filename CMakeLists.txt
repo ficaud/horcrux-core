@@ -9,7 +9,7 @@ option(BUILD_TESTS "Build unit tests with Google Test" OFF)
 # ─────────────────────────────────────────────────────────────────────────────
 if(BUILD_TESTS)
 
-  project(horcrux-tests LANGUAGES C CXX)
+  project(relic-core-tests LANGUAGES C CXX)
   enable_testing()
   add_subdirectory(tests)
 
@@ -46,7 +46,7 @@ else()
   # On-device QR decoding (quirc). Only enabled where the board has enough
   # RAM (ESP32-S3). The classic ESP32 (DevKit V1) keeps the decoder out of the
   # firmware entirely and the web page falls back to local jsQR decoding.
-  if(CONFIG_HORCRUX_QR_DECODE_SERVER)
+  if(CONFIG_RELIC_QR_DECODE_SERVER)
     target_sources(app PRIVATE
         src/qrcode/qr_decode.c
         external/quirc/lib/quirc.c
@@ -56,8 +56,8 @@ else()
     )
     target_include_directories(app PRIVATE external/quirc/lib)
     target_compile_definitions(app PRIVATE
-        # Per-board QR decode image limit (Kconfig: HORCRUX_QR_DECODE_MAX_DIM).
-        QR_DECODE_MAX_DIM=${CONFIG_HORCRUX_QR_DECODE_MAX_DIM}
+        # Per-board QR decode image limit (Kconfig: RELIC_QR_DECODE_MAX_DIM).
+        QR_DECODE_MAX_DIM=${CONFIG_RELIC_QR_DECODE_MAX_DIM}
         # Shrink quirc's fixed-size buffers for the firmware:
         # - QUIRC_MAX_PAYLOAD: QR shares are at most a few hundred bytes
         #   (the WASM demo links without this and keeps the 8896-byte limit).
@@ -78,7 +78,7 @@ else()
   set(ASSETS_DIR    ${CMAKE_CURRENT_SOURCE_DIR}/src/access-point/assets)
   set(ASSETS_OUTPUT ${ASSETS_DIR}/page_captive.h)
 
-  if(CONFIG_HORCRUX_QR_DECODE_SERVER)
+  if(CONFIG_RELIC_QR_DECODE_SERVER)
     set(QR_DECODE_SERVER_FLAG 1)
   else()
     set(QR_DECODE_SERVER_FLAG 0)
@@ -88,7 +88,7 @@ else()
       OUTPUT  ${ASSETS_OUTPUT}
       COMMAND ${PYTHON_EXECUTABLE}
               ${CMAKE_CURRENT_SOURCE_DIR}/tools/embed-assets.py
-              --qr-max-dim ${CONFIG_HORCRUX_QR_DECODE_MAX_DIM}
+              --qr-max-dim ${CONFIG_RELIC_QR_DECODE_MAX_DIM}
               --qr-decode-server ${QR_DECODE_SERVER_FLAG}
               ${ASSETS_DIR}
               ${ASSETS_OUTPUT}

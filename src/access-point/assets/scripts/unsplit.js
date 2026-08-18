@@ -34,11 +34,11 @@
         script.onload = function () {
             QRDecodeWasm().then(function (m) {
                 qrDecodeModule = m;
-                console.log('[horcrux] QR decoder: quirc (WASM) available as fallback');
+                console.log('[relic-core] QR decoder: quirc (WASM) available as fallback');
             });
         };
         script.onerror = function () {
-            console.log('[horcrux] QR decoder: on-device (POST /qr_decode)');
+            console.log('[relic-core] QR decoder: on-device (POST /qr_decode)');
         };
         document.head.appendChild(script);
     })();

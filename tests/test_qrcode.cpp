@@ -159,7 +159,7 @@ TEST_F(QRCodeTest, SizeIncreasesWithContentLength)
 
 TEST_F(QRCodeTest, SizeIsMultipleOfFourPlusOne)
 {
-    ASSERT_TRUE(qrcodegen_encodeText("HORCRUX CORE", temp_, qrcode_));
+    ASSERT_TRUE(qrcodegen_encodeText("RELIC CORE", temp_, qrcode_));
     int size = qrcodegen_getSize(qrcode_);
     EXPECT_EQ((size - 17) % 4, 0);
     EXPECT_GE(size, 21);
@@ -207,7 +207,7 @@ TEST_F(QRCodeTest, DifferentInputProducesDifferentOutput)
 
 TEST_F(QRCodeTest, FinderPatternsPresent)
 {
-    ASSERT_TRUE(qrcodegen_encodeText("HORCRUX CORE", temp_, qrcode_));
+    ASSERT_TRUE(qrcodegen_encodeText("RELIC CORE", temp_, qrcode_));
     int size = qrcodegen_getSize(qrcode_);
 
     // Top-left, top-right and bottom-left finder patterns.
@@ -303,7 +303,7 @@ TEST_F(QRCodeTest, AlphanumericCapacityBoundary)
 //
 // The shares have been generated from this phrase and encoded as QR codes
 // (version 10, 57x57 modules). The golden QR grid byte arrays below were
-// produced by the reference encoder at build time (Horcrux-core v1.2.3 on an
+// produced by the reference encoder at build time (Relic Core v1.2.3 on an
 // ESP32-DevKitV1) and are stored here so that re-encoding the same uppercased
 // share string must reproduce the exact same grid byte-for-byte. This guards
 // against any regression that would silently change the generated QR codes.

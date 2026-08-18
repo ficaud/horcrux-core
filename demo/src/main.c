@@ -11,7 +11,7 @@
  * EXPORTED_FUNCTIONS=_sss_split,_sss_combine,_sss_set_seed,_malloc,_free -s
  * EXPORTED_RUNTIME_METHODS=ccall,cwrap,getValue,setValue -o sss.js main.c sss.c
  *
- * Uses the reference sss.c from horcrux-connect directly (symbolic link / cmake).
+ * Uses the reference sss.c from relic-core directly (symbolic link / cmake).
  */
 
 #include "demo_sss.h"

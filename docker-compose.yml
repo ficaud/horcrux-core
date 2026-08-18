@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
-# Horcrux Core — Docker Compose configuration.
+# Relic Core — Docker Compose configuration.
 #
 # Runs the WASM demo (Shamir's Secret Sharing web UI) in a lightweight
 # nginx container. Works on any platform: Linux, macOS, Windows, and
@@ -11,23 +11,23 @@
 #   # then open http://localhost:8080
 #
 # To use a different port, override with:
-#   HORCRUX_PORT=9090 docker compose up -d
+#   RELIC_PORT=9090 docker compose up -d
 #
-# To identify which version of Horcrux is running, open:
+# To identify which version of Relic Core is running, open:
 #   http://localhost:8080/version.json
 # or inspect the image tag:
-#   docker inspect horcrux --format '{{index .Config.Labels "org.opencontainers.image.version"}}'
+#   docker inspect relic-core --format '{{index .Config.Labels "org.opencontainers.image.version"}}'
 
 services:
-  horcrux:
+  relic-core:
     build:
       context: .
       dockerfile: docker/Dockerfile
       args:
-        VERSION: ${HORCRUX_VERSION:-dev}
-    image: horcrux-wasm:latest
-    container_name: horcrux
+        VERSION: ${RELIC_VERSION:-dev}
+    image: relic-core-wasm:latest
+    container_name: relic-core
     ports:
-      - "${HORCRUX_PORT:-8080}:80"
+      - "${RELIC_PORT:-8080}:80"
     restart: unless-stopped
 

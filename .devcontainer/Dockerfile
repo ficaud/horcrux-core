@@ -261,8 +261,13 @@ ARG USERNAME=vscode
 ARG USER_UID=1000
 ARG USER_GID=1000
 
-# Create group first, then user, then assign sudo
-RUN groupadd --gid "${USER_GID}" "${USERNAME}" 2>/dev/null || true; \
+# Create group first, then user, then assign sudo.
+# The base image (ubuntu:24.04) already ships a user/group named "ubuntu" with
+# UID/GID 1000, so groupadd fails silently there. Fall back to `-o` (allow a
+# duplicate GID) so the "vscode" group always exists for the entrypoint to
+# adjust at runtime.
+RUN ( groupadd --gid "${USER_GID}" "${USERNAME}" 2>/dev/null || \
+      groupadd -o --gid "${USER_GID}" "${USERNAME}" 2>/dev/null || true ); \
     if ! id -u "${USERNAME}" &>/dev/null; then \
         if getent passwd "${USER_UID}" &>/dev/null; then \
             useradd --uid "${USER_UID}" --gid "${USER_GID}" -m "${USERNAME}" -o 2>/dev/null || true; \
@@ -354,4 +359,4 @@ RUN chmod +x /usr/local/bin/entrypoint.sh
 # Switch back to root for entrypoint; the script will drop privileges
 USER root
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
-WORKDIR /workspaces/horcrux
+WORKDIR /workspaces/relic-core
